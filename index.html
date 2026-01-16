@@ -26,6 +26,7 @@
     .safe-area-bottom { padding-bottom: calc(0.5rem + var(--safe-area-inset-bottom)); }
     .sidebar-active { background: #10b981; color: white !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }
     .nav-btn.active { color: #10b981; }
+    .notification-badge { position: absolute; top: 0; right: 0; transform: translate(25%, -25%); }
   </style>
 <script type="importmap">
 {
@@ -47,7 +48,7 @@
         <div class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
           <i class="fas fa-leaf text-white text-xl"></i>
         </div>
-        <h1 class="text-2xl font-black tracking-tighter uppercase">VerdeGest</h1>
+        <h1 class="text-2xl font-black tracking-tighter uppercase text-white">VerdeGest</h1>
       </div>
       <nav class="flex-1 space-y-2">
         <button onclick="switchView('dashboard')" id="side-dashboard" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all sidebar-active">
@@ -55,6 +56,10 @@
         </button>
         <button onclick="switchView('jobs')" id="side-jobs" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all">
           <i class="fas fa-calendar-alt mr-4 w-5"></i> Agenda
+        </button>
+        <button onclick="switchView('notifications')" id="side-notifications" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all relative">
+          <i class="fas fa-bell mr-4 w-5"></i> Alertas
+          <span id="badge-side" class="hidden notification-badge bg-rose-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-black">0</span>
         </button>
         <button onclick="switchView('finance')" id="side-finance" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all">
           <i class="fas fa-wallet mr-4 w-5"></i> Custos
@@ -69,7 +74,7 @@
       <div class="mt-auto pt-6 border-t border-slate-800">
         <div class="flex items-center gap-3">
           <div id="sync-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-          <span id="sync-label" class="text-[9px] font-black uppercase text-slate-500 tracking-widest">A Carregar...</span>
+          <span id="sync-label" class="text-[9px] font-black uppercase text-slate-500 tracking-widest">Sincronizado</span>
         </div>
       </div>
     </aside>
@@ -80,57 +85,67 @@
       <!-- Mobile Header -->
       <header class="mb-8 flex justify-between items-center md:hidden">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-600/20">
+          <div class="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center">
             <i class="fas fa-leaf text-white text-sm"></i>
           </div>
           <h1 class="text-xl font-black tracking-tighter text-slate-900 uppercase">VerdeGest</h1>
         </div>
-        <div id="mobile-badge" class="px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700">A Ler...</div>
+        <div id="mobile-badge" class="px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700">Online</div>
       </header>
 
       <!-- VIEW: DASHBOARD -->
       <section id="view-dashboard" class="view active">
         <div class="space-y-6">
+          <div id="urgent-alert-bar" class="hidden bg-rose-500 text-white px-6 py-4 rounded-2xl flex justify-between items-center animate-pulse cursor-pointer" onclick="switchView('notifications')">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-exclamation-triangle"></i>
+              <span id="urgent-alert-text" class="text-xs font-black uppercase tracking-widest">Tem notificações urgentes</span>
+            </div>
+            <i class="fas fa-chevron-right text-xs"></i>
+          </div>
+
           <div class="bg-gradient-to-br from-emerald-600 to-teal-800 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
             <div class="relative z-10">
-              <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Balanço Líquido (Mês)</p>
+              <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Balanço Líquido</p>
               <h2 id="dash-balance" class="text-5xl font-black mt-2 tracking-tighter">0.00€</h2>
               <div class="flex gap-4 mt-8">
                 <div class="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/5 flex-1">
-                  <p class="text-[9px] font-black opacity-60 uppercase">Facturado</p>
+                  <p class="text-[9px] font-black opacity-60 uppercase">Faturado</p>
                   <p id="dash-income" class="text-lg font-black">0.00€</p>
                 </div>
                 <div class="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/5 flex-1">
                   <p class="text-[9px] font-black opacity-60 uppercase">Gastos</p>
-                  <p id="dash-cost" class="text-lg font-black text-emerald-200">0.00€</p>
+                  <p id="dash-cost" class="text-lg font-black">0.00€</p>
                 </div>
               </div>
             </div>
-            <i class="fas fa-seedling absolute -right-10 -bottom-10 text-[14rem] opacity-5 rotate-12"></i>
           </div>
-
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-white p-6 rounded-[2rem] border border-slate-100 card-shadow">
-              <h3 class="text-[10px] font-black uppercase text-slate-400 mb-6 flex items-center gap-2">
-                <i class="fas fa-chart-line"></i> Evolução
-              </h3>
-              <div class="h-64 relative">
-                <canvas id="dashChart"></canvas>
-              </div>
+            <div class="bg-white p-6 rounded-[2rem] border border-slate-100 card-shadow h-64 relative">
+              <canvas id="dashChart"></canvas>
             </div>
-            <div class="bg-slate-900 p-8 rounded-[2rem] text-white shadow-xl flex flex-col justify-center">
-              <h3 class="text-[10px] font-black uppercase text-emerald-400 mb-6 tracking-widest">Resumo Hoje</h3>
-              <div class="space-y-4">
-                <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
+            <div class="bg-slate-900 p-8 rounded-[2rem] text-white flex flex-col justify-center">
+               <div class="space-y-4">
+                <div class="flex justify-between items-center">
                   <span class="text-xs font-bold text-slate-400">Serviços Pendentes</span>
                   <span id="dash-jobs-pending" class="text-xl font-black">0</span>
                 </div>
-                <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
-                  <span class="text-xs font-bold text-slate-400">Dívidas Clientes</span>
+                <div class="flex justify-between items-center">
+                  <span class="text-xs font-bold text-slate-400">Pagamentos em Falta</span>
                   <span id="dash-debts" class="text-xl font-black text-rose-400">0</span>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: NOTIFICATIONS -->
+      <section id="view-notifications" class="view">
+        <div class="space-y-6">
+          <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Centro de Alertas</h2>
+          <div id="notifications-list" class="space-y-4 pb-12">
+            <!-- Alertas dinâmicos -->
           </div>
         </div>
       </section>
@@ -152,57 +167,49 @@
 
           <div id="job-form-box" class="hidden animate-in">
             <form id="form-job" class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 space-y-6">
+              <datalist id="datalist-clients"></datalist>
+              <datalist id="datalist-categories"></datalist>
+              
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-1">
-                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Cliente</label>
-                  <input required id="j-client" placeholder="Ex: Sra. Maria" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                  <label class="text-[10px] font-black uppercase text-slate-400">Cliente</label>
+                  <input required id="j-client" list="datalist-clients" placeholder="Nome do Cliente" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
                 </div>
                 <div class="space-y-1">
-                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Categoria</label>
-                  <select id="j-category" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
-                    <option value="Relva">Relva</option>
-                    <option value="Poda">Poda</option>
-                    <option value="Rega">Rega</option>
-                    <option value="Limpeza">Limpeza</option>
-                    <option value="Tratamento">Tratamento</option>
-                  </select>
+                  <label class="text-[10px] font-black uppercase text-slate-400">Categoria</label>
+                  <input required id="j-category" list="datalist-categories" placeholder="Ex: Relva, Poda..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
                 </div>
                 <div class="space-y-1">
-                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Colaboradores / Equipa</label>
-                  <input id="j-workers" placeholder="Ex: João, Pedro" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                  <label class="text-[10px] font-black uppercase text-slate-400">Colaboradores</label>
+                  <input id="j-workers" placeholder="João, Maria..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
                 </div>
                 <div class="space-y-1">
-                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Valor (€)</label>
-                  <input type="number" step="0.5" id="j-price" value="30" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                  <label class="text-[10px] font-black uppercase text-slate-400">Tarifa (€)</label>
+                  <div class="flex gap-2">
+                    <input type="number" step="0.5" id="j-price" value="30" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
+                    <select id="j-price-type" class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs">
+                      <option value="fixed">Fixo</option>
+                      <option value="hourly">/Hora</option>
+                    </select>
+                  </div>
                 </div>
                 <div class="space-y-1">
-                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Tipo</label>
+                  <label class="text-[10px] font-black uppercase text-slate-400">Tipo</label>
                   <select id="j-type" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
                     <option value="regular">Regular</option>
                     <option value="extra">Extra</option>
                   </select>
                 </div>
                 <div class="space-y-1">
-                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Data</label>
+                  <label class="text-[10px] font-black uppercase text-slate-400">Data</label>
                   <input type="date" id="j-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
                 </div>
-                <div class="space-y-1">
-                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Recorrência</label>
-                  <select id="j-recurrence" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
-                    <option value="none">Uma vez</option>
-                    <option value="weekly">Semanal (12x)</option>
-                    <option value="biweekly">Quinzenal (6x)</option>
-                    <option value="monthly">Mensal (6x)</option>
-                  </select>
-                </div>
               </div>
-              <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-black shadow-lg">Confirmar Agendamento</button>
+              <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-black shadow-lg">Registar Serviço</button>
             </form>
           </div>
 
-          <div id="jobs-list" class="space-y-4 pb-12">
-            <!-- Jobs dinâmicos -->
-          </div>
+          <div id="jobs-list" class="space-y-4 pb-12"></div>
         </div>
       </section>
 
@@ -215,7 +222,6 @@
               + Registar Gasto
             </button>
           </div>
-
           <div id="exp-form-box" class="hidden animate-in">
             <form id="form-expense" class="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 space-y-4">
               <input required id="e-desc" placeholder="Descrição do Gasto" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm outline-none">
@@ -226,7 +232,6 @@
               <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg">Gravar Despesa</button>
             </form>
           </div>
-
           <div class="bg-white rounded-[2.5rem] border border-slate-100 card-shadow overflow-hidden">
             <table class="w-full text-left">
               <thead class="bg-slate-50 border-b border-slate-100">
@@ -264,7 +269,7 @@
               <i class="fas fa-cloud-arrow-up text-emerald-500"></i> Google Sheets Link
             </h2>
             <div class="space-y-4">
-              <input id="s-url" type="text" placeholder="URL do Apps Script..." class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-5 text-xs font-mono outline-none focus:ring-2 focus:ring-emerald-500">
+              <input id="s-url" type="text" placeholder="URL do Apps Script (https://script.google.com/...)" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-5 text-xs font-mono outline-none focus:ring-2 focus:ring-emerald-500">
               <button onclick="saveSettings()" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-emerald-600/20 active:scale-95 transition-all">
                 Salvar e Sincronizar
               </button>
@@ -277,6 +282,7 @@
           </div>
         </div>
       </section>
+      
     </main>
 
     <!-- Mobile Nav -->
@@ -289,13 +295,14 @@
         <i class="fas fa-calendar-alt text-lg"></i>
         <span class="text-[8px] font-black uppercase tracking-tighter">Agenda</span>
       </button>
+      <button onclick="switchView('notifications')" id="mbtn-notifications" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 text-slate-400 relative">
+        <i class="fas fa-bell text-lg"></i>
+        <span class="text-[8px] font-black uppercase tracking-tighter">Alertas</span>
+        <span id="badge-mobile" class="hidden notification-badge bg-rose-500 text-white text-[7px] px-1 py-0.5 rounded-full font-black">0</span>
+      </button>
       <button onclick="switchView('finance')" id="mbtn-finance" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 text-slate-400">
         <i class="fas fa-wallet text-lg"></i>
         <span class="text-[8px] font-black uppercase tracking-tighter">Custos</span>
-      </button>
-      <button onclick="switchView('ai')" id="mbtn-ai" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 text-slate-400">
-        <i class="fas fa-robot text-lg"></i>
-        <span class="text-[8px] font-black uppercase tracking-tighter">IA</span>
       </button>
       <button onclick="switchView('settings')" id="mbtn-settings" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 text-slate-400">
         <i class="fas fa-cloud text-lg"></i>
@@ -311,89 +318,83 @@
     let state = {
       jobs: JSON.parse(localStorage.getItem('vg_jobs')) || [],
       expenses: JSON.parse(localStorage.getItem('vg_exp')) || [],
-      settings: JSON.parse(localStorage.getItem('vg_set')) || { googleScriptUrl: '' },
+      settings: JSON.parse(localStorage.getItem('vg_set')) || { 
+        googleScriptUrl: '',
+        categories: ['Relva', 'Poda', 'Rega', 'Limpeza']
+      },
       timer: { active: false, start: null }
     };
 
     let chart = null;
-    let timerInterval = null;
 
     // --- CARREGAMENTO INICIAL ---
     window.addEventListener('load', async () => {
-      // 1. Mostrar o que já está no localStorage imediatamente
       renderAll();
       initChart();
+      updateDatalists();
       
-      // 2. Preencher inputs persistentes
-      document.getElementById('j-date').value = new Date().toISOString().split('T')[0];
-      document.getElementById('e-date').value = new Date().toISOString().split('T')[0];
-      document.getElementById('s-url').value = state.settings.googleScriptUrl || '';
+      const dateInput = document.getElementById('j-date');
+      if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+      
+      const expDateInput = document.getElementById('e-date');
+      if (expDateInput) expDateInput.value = new Date().toISOString().split('T')[0];
 
-      // 3. Tentar ir buscar os dados mais recentes à nuvem
+      const urlInput = document.getElementById('s-url');
+      if (urlInput) urlInput.value = state.settings.googleScriptUrl || '';
+      
       if (state.settings.googleScriptUrl) {
         await autoFetchFromCloud();
-      } else {
-        updateSyncStatus('Local (Sem Nuvem)');
       }
     });
 
-    // --- CLOUD ENGINE ---
     async function autoFetchFromCloud() {
       if (!state.settings.googleScriptUrl) return;
-      
-      updateSyncStatus('A ler Nuvem...');
-      
+      updateSyncStatus('A ler Cloud...');
       try {
-        // GET para o Apps Script
         const response = await fetch(state.settings.googleScriptUrl);
         const cloudData = await response.json();
-        
         if (cloudData && (cloudData.jobs || cloudData.expenses)) {
-          // Só atualizamos se houver dados reais para não limpar o telemóvel por erro
-          if (cloudData.jobs) state.jobs = cloudData.jobs;
-          if (cloudData.expenses) state.expenses = cloudData.expenses;
-          
-          // Salvar localmente o que veio da nuvem
-          localStorage.setItem('vg_jobs', JSON.stringify(state.jobs));
-          localStorage.setItem('vg_exp', JSON.stringify(state.expenses));
-          
+          state.jobs = cloudData.jobs || state.jobs;
+          state.expenses = cloudData.expenses || state.expenses;
+          saveLocal(false);
           renderAll();
-          updateSyncStatus('Nuvem Sincronizada');
-        } else {
-          updateSyncStatus('Nuvem Vazia');
+          updateSyncStatus('Cloud OK');
         }
       } catch (e) {
-        console.error("Erro ao carregar da nuvem:", e);
-        updateSyncStatus('Erro Cloud (Local OK)');
+        updateSyncStatus('Erro Cloud (Offline)');
       }
     }
 
-    window.manualSync = async () => {
-      if (!state.settings.googleScriptUrl) {
-        alert("Configure primeiro o URL nas Definições.");
-        return;
-      }
-      
-      updateSyncStatus('A Enviar...');
-      
-      try {
-        const payload = {
-          jobs: state.jobs,
-          expenses: state.expenses,
-          timestamp: new Date().toISOString()
-        };
+    function updateDatalists() {
+      const clients = Array.from(new Set(state.jobs.map(j => j.clientName))).sort();
+      const dlClients = document.getElementById('datalist-clients');
+      if (dlClients) dlClients.innerHTML = clients.map(c => `<option value="${c}">`).join('');
 
+      const dlCats = document.getElementById('datalist-categories');
+      if (dlCats) dlCats.innerHTML = state.settings.categories.map(c => `<option value="${c}">`).join('');
+    }
+
+    function saveLocal(sync = true) {
+      localStorage.setItem('vg_jobs', JSON.stringify(state.jobs));
+      localStorage.setItem('vg_exp', JSON.stringify(state.expenses));
+      localStorage.setItem('vg_set', JSON.stringify(state.settings));
+      renderAll();
+      updateDatalists();
+      if (sync) manualSync();
+    }
+
+    window.manualSync = async () => {
+      if (!state.settings.googleScriptUrl) return;
+      updateSyncStatus('A enviar...');
+      try {
         await fetch(state.settings.googleScriptUrl, {
           method: 'POST',
           mode: 'no-cors',
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ jobs: state.jobs, expenses: state.expenses, settings: state.settings })
         });
-
-        updateSyncStatus('Enviado OK');
-        // Depois de enviar, tenta ler de volta para confirmar
-        setTimeout(autoFetchFromCloud, 2000);
+        updateSyncStatus('Sincronizado');
       } catch (e) {
-        updateSyncStatus('Erro no Envio');
+        updateSyncStatus('Erro Sync');
       }
     };
 
@@ -401,83 +402,175 @@
       const dot = document.getElementById('sync-dot');
       const label = document.getElementById('sync-label');
       const badge = document.getElementById('mobile-badge');
-      
       if (label) label.innerText = text;
       if (badge) badge.innerText = text;
+      if (!dot) return;
+      if (text.includes('Erro')) dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+      else if (text.includes('ler') || text.includes('enviar')) dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse";
+      else dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
+    }
 
-      if (text.includes('Erro')) {
-        dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
-      } else if (text.includes('ler') || text.includes('Enviar')) {
-        dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse";
+    // --- NOTIFICATIONS ENGINE ---
+    function calculateNotifications() {
+      const today = new Date().toISOString().split('T')[0];
+      const alerts = [];
+
+      // Serviços Agendados para Hoje
+      const jobsToday = state.jobs.filter(j => j.date === today && j.status === 'scheduled');
+      jobsToday.forEach(j => alerts.push({
+        id: 'job-'+j.id,
+        type: 'job',
+        title: 'Serviço Hoje',
+        desc: `Manutenção para ${j.clientName} marcada para hoje.`,
+        urgency: 'high'
+      }));
+
+      // Contas Pendentes (Concluídos e Não Pagos)
+      const debts = state.jobs.filter(j => j.status === 'completed' && j.paymentStatus === 'unpaid');
+      debts.forEach(j => {
+        const jobDate = new Date(j.date);
+        const now = new Date();
+        const diffDays = Math.floor((now - jobDate) / (1000 * 60 * 60 * 24));
+        alerts.push({
+          id: 'pay-'+j.id,
+          type: 'payment',
+          title: 'Pagamento em Falta',
+          desc: `${j.clientName} deve ${Number(j.totalValue).toFixed(2)}€ (Serviço de há ${diffDays} dias).`,
+          urgency: diffDays > 3 ? 'high' : 'medium'
+        });
+      });
+
+      // Despesas Não Liquidadas
+      const unpaidExp = state.expenses.filter(e => !e.paymentStatus || e.paymentStatus === 'unpaid');
+      unpaidExp.forEach(e => alerts.push({
+        id: 'exp-'+e.id,
+        type: 'expense',
+        title: 'Despesa Pendente',
+        desc: `Gasto "${e.description}" de ${Number(e.amount).toFixed(2)}€ ainda por liquidar.`,
+        urgency: 'medium'
+      }));
+
+      return alerts;
+    }
+
+    function renderNotifications() {
+      const list = document.getElementById('notifications-list');
+      const sideBadge = document.getElementById('badge-side');
+      const mobileBadge = document.getElementById('badge-mobile');
+      const alertBar = document.getElementById('urgent-alert-bar');
+      const alertText = document.getElementById('urgent-alert-text');
+
+      if (!list) return;
+      const alerts = calculateNotifications();
+
+      // Update Badges
+      if (alerts.length > 0) {
+        sideBadge.innerText = alerts.length;
+        sideBadge.classList.remove('hidden');
+        mobileBadge.innerText = alerts.length;
+        mobileBadge.classList.remove('hidden');
+        
+        if (alertBar) {
+          alertBar.classList.remove('hidden');
+          alertText.innerText = `${alerts.length} Alertas Urgentes`;
+        }
       } else {
-        dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
+        sideBadge.classList.add('hidden');
+        mobileBadge.classList.add('hidden');
+        if (alertBar) alertBar.classList.add('hidden');
       }
+
+      list.innerHTML = '';
+      if (alerts.length === 0) {
+        list.innerHTML = `<div class="text-center py-20 bg-white rounded-[2rem] border border-dashed border-slate-200 text-slate-400 font-bold uppercase text-[10px]">Tudo em Dia</div>`;
+        return;
+      }
+
+      alerts.forEach(a => {
+        const div = document.createElement('div');
+        const borderColor = a.urgency === 'high' ? 'border-rose-500' : 'border-amber-400';
+        const iconColor = a.type === 'job' ? 'text-emerald-500' : a.type === 'payment' ? 'text-rose-500' : 'text-amber-500';
+        const icon = a.type === 'job' ? 'fa-leaf' : a.type === 'payment' ? 'fa-hand-holding-dollar' : 'fa-gas-pump';
+
+        div.className = `bg-white p-6 rounded-2xl border-l-4 ${borderColor} card-shadow flex gap-4 items-center`;
+        div.innerHTML = `
+          <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center ${iconColor}">
+            <i class="fas ${icon} text-lg"></i>
+          </div>
+          <div class="flex-1">
+            <h4 class="font-black text-slate-800 text-sm uppercase tracking-tight">${a.title}</h4>
+            <p class="text-[10px] text-slate-500 font-medium leading-relaxed">${a.desc}</p>
+          </div>
+          <button onclick="switchView('${a.type === 'expense' ? 'finance' : 'jobs'}')" class="text-slate-300 hover:text-slate-600">
+            <i class="fas fa-chevron-right text-xs"></i>
+          </button>
+        `;
+        list.appendChild(div);
+      });
     }
 
     // --- UI ENGINE ---
     window.switchView = (viewName) => {
+      const targetView = document.getElementById('view-' + viewName);
+      if (!targetView) return;
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      document.getElementById('view-' + viewName).classList.add('active');
-      
-      document.querySelectorAll('.nav-btn, .sidebar-btn').forEach(b => {
-        b.classList.remove('active', 'sidebar-active');
-        if (b.id.includes(viewName)) {
-           if(b.classList.contains('sidebar-btn')) b.classList.add('sidebar-active');
-           else b.classList.add('active');
-        }
-      });
+      targetView.classList.add('active');
+      document.querySelectorAll('.sidebar-btn, .nav-btn').forEach(b => b.classList.remove('active', 'sidebar-active'));
+      const activeBtn = document.getElementById('side-' + viewName) || document.getElementById('mbtn-' + viewName);
+      if (activeBtn) activeBtn.classList.add(activeBtn.classList.contains('sidebar-btn') ? 'sidebar-active' : 'active');
     };
 
-    window.toggleElement = (id) => document.getElementById(id).classList.toggle('hidden');
+    window.toggleElement = (id) => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('hidden');
+    };
 
     function renderAll() {
       renderDashboard();
       renderJobs();
       renderExpenses();
+      renderNotifications();
     }
 
     function renderDashboard() {
+      const balanceEl = document.getElementById('dash-balance');
+      const incomeEl = document.getElementById('dash-income');
+      const costEl = document.getElementById('dash-cost');
+      const pendingEl = document.getElementById('dash-jobs-pending');
+      const debtsEl = document.getElementById('dash-debts');
+      if (!balanceEl || !incomeEl || !costEl) return;
       const completed = state.jobs.filter(j => j.status === 'completed');
       const income = completed.reduce((s, j) => s + (Number(j.totalValue) || 0), 0);
       const cost = state.expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
-      
-      document.getElementById('dash-balance').innerText = (income - cost).toFixed(2) + '€';
-      document.getElementById('dash-income').innerText = income.toFixed(2) + '€';
-      document.getElementById('dash-cost').innerText = cost.toFixed(2) + '€';
-      document.getElementById('dash-jobs-pending').innerText = state.jobs.filter(j => j.status !== 'completed').length;
-      document.getElementById('dash-debts').innerText = state.jobs.filter(j => j.paymentStatus === 'unpaid' && j.status === 'completed').length;
-
-      if(chart) {
-        chart.data.datasets[0].data = [income, cost];
-        chart.update();
-      }
+      balanceEl.innerText = (income - cost).toFixed(2) + '€';
+      incomeEl.innerText = income.toFixed(2) + '€';
+      costEl.innerText = cost.toFixed(2) + '€';
+      if (pendingEl) pendingEl.innerText = state.jobs.filter(j => j.status !== 'completed').length;
+      if (debtsEl) debtsEl.innerText = state.jobs.filter(j => j.status === 'completed' && j.paymentStatus === 'unpaid').length;
+      if(chart) { chart.data.datasets[0].data = [income, cost]; chart.update(); }
     }
 
     function renderJobs() {
       const list = document.getElementById('jobs-list');
+      if (!list) return;
       list.innerHTML = '';
-
       if (state.jobs.length === 0) {
-        list.innerHTML = `<div class="text-center py-20 bg-white rounded-[2rem] border border-dashed border-slate-200 text-slate-400 font-bold uppercase text-[10px]">Sem Agenda</div>`;
+        list.innerHTML = `<div class="text-center py-20 text-slate-400 font-bold uppercase text-[10px] bg-white rounded-[2rem] border border-dashed border-slate-200">Sem Agenda</div>`;
         return;
       }
-
       state.jobs.sort((a,b) => b.date.localeCompare(a.date)).forEach(j => {
         const div = document.createElement('div');
         div.className = "bg-white p-6 rounded-[2rem] border border-slate-100 card-shadow flex justify-between items-center";
-        
-        const workersInfo = j.workers ? `<p class="text-[9px] text-emerald-600 font-black uppercase mt-2"><i class="fas fa-users mr-1"></i> ${j.workers}</p>` : '';
-
         div.innerHTML = `
-          <div class="flex-1">
-            <h4 class="font-black text-slate-800">${j.clientName} <span class="text-[8px] bg-slate-100 px-1.5 py-0.5 rounded ml-2">${j.serviceType.toUpperCase()}</span></h4>
+          <div>
+            <h4 class="font-black text-slate-800">${j.clientName} <span class="text-[8px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded ml-2 uppercase">${j.serviceType || 'REGULAR'}</span></h4>
             <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">${j.date} • ${j.category}</p>
-            ${workersInfo}
+            ${j.workers ? `<p class="text-[9px] font-black text-emerald-600 uppercase mt-1"><i class="fas fa-users mr-1"></i> ${j.workers}</p>` : ''}
           </div>
-          <div class="text-right ml-4">
+          <div class="text-right">
             <p class="font-black text-slate-900">${Number(j.totalValue).toFixed(2)}€</p>
             <div class="flex gap-2 mt-2">
-              ${j.status !== 'completed' ? `<button onclick="updateJobStatus('${j.id}', 'completed')" class="text-[9px] font-black uppercase text-emerald-600">Concluir</button>` : `<span class="text-[9px] text-emerald-500 font-black">OK</span>`}
+              <button onclick="updateJobStatus('${j.id}', 'completed')" class="text-[9px] font-black uppercase text-emerald-600">Concluir</button>
               <button onclick="deleteJob('${j.id}')" class="text-[9px] font-black uppercase text-rose-500">Apagar</button>
             </div>
           </div>`;
@@ -487,107 +580,133 @@
 
     function renderExpenses() {
       const tbody = document.getElementById('expenses-body');
+      if (!tbody) return;
       tbody.innerHTML = '';
-      state.expenses.forEach(e => {
+      state.expenses.sort((a,b) => b.date.localeCompare(a.date)).forEach(e => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td class="px-6 py-4 text-xs font-bold">${e.date}</td><td class="px-6 py-4 text-xs font-black uppercase">${e.description}</td><td class="px-6 py-4 text-sm font-black text-rose-500 text-right">-${Number(e.amount).toFixed(2)}€</td>`;
+        tr.innerHTML = `
+          <td class="px-6 py-4 text-xs font-bold text-slate-500">${e.date}</td>
+          <td class="px-6 py-4 text-xs font-black uppercase text-slate-800">${e.description}</td>
+          <td class="px-6 py-4 text-sm font-black text-rose-500 text-right">-${Number(e.amount).toFixed(2)}€</td>
+        `;
         tbody.appendChild(tr);
       });
     }
 
     // --- ACTIONS ---
-    document.getElementById('form-job').onsubmit = (e) => {
-      e.preventDefault();
-      const job = {
-        id: Date.now().toString(),
-        clientName: document.getElementById('j-client').value,
-        category: document.getElementById('j-category').value,
-        workers: document.getElementById('j-workers').value,
-        totalValue: Number(document.getElementById('j-price').value),
-        serviceType: document.getElementById('j-type').value,
-        date: document.getElementById('j-date').value,
-        status: 'scheduled',
-        paymentStatus: 'unpaid'
+    const jobForm = document.getElementById('form-job');
+    if (jobForm) {
+      jobForm.onsubmit = (e) => {
+        e.preventDefault();
+        const cat = document.getElementById('j-category').value;
+        if (cat && !state.settings.categories.includes(cat)) {
+          state.settings.categories.push(cat);
+        }
+        const job = {
+          id: Date.now().toString(),
+          clientName: document.getElementById('j-client').value,
+          category: cat,
+          workers: document.getElementById('j-workers').value,
+          totalValue: Number(document.getElementById('j-price').value),
+          serviceType: document.getElementById('j-type').value,
+          date: document.getElementById('j-date').value,
+          status: 'scheduled',
+          paymentStatus: 'unpaid'
+        };
+        state.jobs.push(job);
+        saveLocal();
+        toggleElement('job-form-box');
+        jobForm.reset();
       };
-      state.jobs.push(job);
-      saveLocal();
-      manualSync();
-      toggleElement('job-form-box');
-      document.getElementById('form-job').reset();
-    };
+    }
 
-    document.getElementById('form-expense').onsubmit = (e) => {
-      e.preventDefault();
-      state.expenses.push({
-        id: Date.now().toString(),
-        description: document.getElementById('e-desc').value,
-        amount: Number(document.getElementById('e-amount').value),
-        date: document.getElementById('e-date').value
-      });
-      saveLocal();
-      manualSync();
-      toggleElement('exp-form-box');
-      document.getElementById('form-expense').reset();
-    };
+    const expForm = document.getElementById('form-expense');
+    if (expForm) {
+      expForm.onsubmit = (e) => {
+        e.preventDefault();
+        const exp = {
+          id: Date.now().toString(),
+          description: document.getElementById('e-desc').value,
+          amount: Number(document.getElementById('e-amount').value),
+          date: document.getElementById('e-date').value,
+          paymentStatus: 'unpaid'
+        };
+        state.expenses.push(exp);
+        saveLocal();
+        toggleElement('exp-form-box');
+        expForm.reset();
+      };
+    }
 
     window.updateJobStatus = (id, s) => {
       state.jobs = state.jobs.map(j => j.id === id ? {...j, status: s} : j);
       saveLocal();
-      manualSync();
     };
 
     window.deleteJob = (id) => {
-      if(!confirm("Apagar?")) return;
-      state.jobs = state.jobs.filter(j => j.id !== id);
-      saveLocal();
-      manualSync();
+      if(confirm('Apagar serviço permanentemente?')) { 
+        state.jobs = state.jobs.filter(j => j.id !== id); 
+        saveLocal(); 
+      }
     };
 
     window.saveSettings = () => {
-      state.settings.googleScriptUrl = document.getElementById('s-url').value;
+      const url = document.getElementById('s-url').value;
+      state.settings.googleScriptUrl = url;
       localStorage.setItem('vg_set', JSON.stringify(state.settings));
       manualSync();
+      alert('Definições Cloud guardadas!');
     };
 
-    function saveLocal() {
-      localStorage.setItem('vg_jobs', JSON.stringify(state.jobs));
-      localStorage.setItem('vg_exp', JSON.stringify(state.expenses));
-      renderAll();
-    }
-
-    // --- CHART ---
     function initChart() {
-      const ctx = document.getElementById('dashChart').getContext('2d');
+      const canvas = document.getElementById('dashChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
       chart = new Chart(ctx, {
         type: 'bar',
-        data: {
-          labels: ['Facturação', 'Gastos'],
-          datasets: [{ data: [0, 0], backgroundColor: ['#10b981', '#f43f5e'], borderRadius: 10 }]
+        data: { 
+          labels: ['Receitas', 'Gastos'], 
+          datasets: [{ data: [0, 0], backgroundColor: ['#10b981', '#f43f5e'], borderRadius: 10 }] 
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { y: { display: false }, x: { grid: { display: false } } }
+        options: { 
+          responsive: true, maintainAspectRatio: false, 
+          plugins: { legend: { display: false } }, 
+          scales: { y: { display: false }, x: { grid: { display: false } } } 
         }
       });
     }
 
-    // --- IA INSIGHTS ---
+    window.toggleTimer = () => {
+      const btn = document.getElementById('timer-label');
+      if (!btn) return;
+      if (!state.timer.active) {
+        state.timer.active = true;
+        state.timer.start = Date.now();
+        btn.innerText = 'Parar';
+        btn.parentElement.classList.replace('bg-rose-500', 'bg-slate-900');
+      } else {
+        const elapsed = (Date.now() - state.timer.start) / (1000 * 60 * 60);
+        alert(`Serviço cronometrado: ${elapsed.toFixed(2)} horas.`);
+        state.timer.active = false;
+        btn.innerText = 'Timer';
+        btn.parentElement.classList.replace('bg-slate-900', 'bg-rose-500');
+      }
+    };
+
     window.generateInsights = async () => {
       const btn = document.getElementById('btn-insights');
       const reportDiv = document.getElementById('ai-report');
+      if (!btn || !reportDiv) return;
       btn.disabled = true;
-      btn.innerHTML = 'A Analisar...';
-
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>A Analisar...';
       try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const prompt = `Analise os meus dados de jardinagem. Serviços: ${JSON.stringify(state.jobs)}. Custos: ${JSON.stringify(state.expenses)}. Dê conselhos curtos.`;
-        const res = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: prompt });
+        const prompt = `Analise os meus dados de jardinagem. Serviços: ${JSON.stringify(state.jobs)}. Custos: ${JSON.stringify(state.expenses)}. Forneça 3 conselhos estratégicos curtos em Português de Portugal.`;
+        const res = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
         reportDiv.innerText = res.text;
         reportDiv.classList.remove('hidden');
       } catch (e) {
-        reportDiv.innerText = "Erro ao ligar à IA.";
+        reportDiv.innerText = "Erro ao ligar ao motor de IA. Verifique a ligação.";
         reportDiv.classList.remove('hidden');
       } finally {
         btn.disabled = false;
