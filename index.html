@@ -60,10 +60,6 @@
         <button onclick="switchView('jobs')" id="side-jobs" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all">
           <i class="fas fa-calendar-alt mr-4 w-5"></i> Agenda
         </button>
-        <button onclick="switchView('notifications')" id="side-notifications" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all relative">
-          <i class="fas fa-bell mr-4 w-5"></i> Alertas
-          <span id="badge-side" class="hidden notification-badge bg-rose-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-black">0</span>
-        </button>
         <button onclick="switchView('finance')" id="side-finance" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all">
           <i class="fas fa-wallet mr-4 w-5"></i> Custos
         </button>
@@ -99,14 +95,6 @@
       <!-- VIEW: DASHBOARD -->
       <section id="view-dashboard" class="view active">
         <div class="space-y-6">
-          <div id="urgent-alert-bar" class="hidden bg-rose-500 text-white px-6 py-4 rounded-2xl flex justify-between items-center animate-pulse cursor-pointer" onclick="switchView('notifications')">
-            <div class="flex items-center gap-3">
-              <i class="fas fa-exclamation-triangle"></i>
-              <span id="urgent-alert-text" class="text-xs font-black uppercase tracking-widest">Tem notificações urgentes</span>
-            </div>
-            <i class="fas fa-chevron-right text-xs"></i>
-          </div>
-
           <div class="bg-gradient-to-br from-emerald-600 to-teal-800 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
             <div class="relative z-10">
               <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Balanço Líquido</p>
@@ -140,14 +128,6 @@
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      <!-- VIEW: NOTIFICATIONS -->
-      <section id="view-notifications" class="view">
-        <div class="space-y-6">
-          <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Centro de Alertas</h2>
-          <div id="notifications-list" class="space-y-4 pb-12"></div>
         </div>
       </section>
 
@@ -318,11 +298,6 @@
         <i class="fas fa-calendar-alt text-lg"></i>
         <span class="text-[8px] font-black uppercase tracking-tighter">Agenda</span>
       </button>
-      <button onclick="switchView('notifications')" id="mbtn-notifications" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 text-slate-400 relative">
-        <i class="fas fa-bell text-lg"></i>
-        <span class="text-[8px] font-black uppercase tracking-tighter">Alertas</span>
-        <span id="badge-mobile" class="hidden notification-badge bg-rose-500 text-white text-[7px] px-1 py-0.5 rounded-full font-black">0</span>
-      </button>
       <button onclick="switchView('finance')" id="mbtn-finance" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 text-slate-400">
         <i class="fas fa-wallet text-lg"></i>
         <span class="text-[8px] font-black uppercase tracking-tighter">Custos</span>
@@ -467,48 +442,6 @@
       else dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
     }
 
-    // --- NOTIFICATIONS ENGINE ---
-    function calculateNotifications() {
-      const today = new Date().toISOString().split('T')[0];
-      const alerts = [];
-      const jobsToday = state.jobs.filter(j => j.date === today && j.status === 'scheduled');
-      jobsToday.forEach(j => alerts.push({ id: 'job-'+j.id, type: 'job', title: 'Serviço Hoje', desc: `${j.clientName} (${j.startTime || '?'})`, urgency: 'high' }));
-      const debts = state.jobs.filter(j => j.status === 'completed' && j.paymentStatus === 'unpaid');
-      debts.forEach(j => alerts.push({ id: 'pay-'+j.id, type: 'payment', title: 'A Receber', desc: `${j.clientName} (${Number(j.totalValue).toFixed(2)}€)`, urgency: 'high' }));
-      const unpaidExp = state.expenses.filter(e => !e.paymentStatus || e.paymentStatus === 'unpaid');
-      unpaidExp.forEach(e => alerts.push({ id: 'exp-'+e.id, type: 'expense', title: 'Gasto Pendente', desc: `${e.description}`, urgency: 'medium' }));
-      return alerts;
-    }
-
-    function renderNotifications() {
-      const list = document.getElementById('notifications-list');
-      const sideBadge = document.getElementById('badge-side');
-      const mobileBadge = document.getElementById('badge-mobile');
-      const alertBar = document.getElementById('urgent-alert-bar');
-      const alertText = document.getElementById('urgent-alert-text');
-      if (!list) return;
-      const alerts = calculateNotifications();
-      if (alerts.length > 0) {
-        sideBadge.innerText = alerts.length; sideBadge.classList.remove('hidden');
-        mobileBadge.innerText = alerts.length; mobileBadge.classList.remove('hidden');
-        if (alertBar) { alertBar.classList.remove('hidden'); alertText.innerText = `${alerts.length} Alertas Ativos`; }
-      } else {
-        sideBadge.classList.add('hidden'); mobileBadge.classList.add('hidden');
-        if (alertBar) alertBar.classList.add('hidden');
-      }
-      list.innerHTML = '';
-      if (alerts.length === 0) {
-        list.innerHTML = `<div class="text-center py-10 text-slate-400 font-bold uppercase text-[9px]">Tudo em dia</div>`;
-        return;
-      }
-      alerts.forEach(a => {
-        const div = document.createElement('div');
-        div.className = "bg-white p-4 rounded-xl border-l-4 " + (a.urgency === 'high' ? 'border-rose-500' : 'border-amber-400') + " card-shadow flex justify-between items-center mb-2";
-        div.innerHTML = `<div><h4 class="font-black text-slate-800 text-[10px] uppercase">${a.title}</h4><p class="text-[9px] text-slate-500 font-medium">${a.desc}</p></div>`;
-        list.appendChild(div);
-      });
-    }
-
     // --- UI ENGINE ---
     window.switchView = (viewName) => {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -535,7 +468,6 @@
       renderDashboard();
       renderJobs();
       renderExpenses();
-      renderNotifications();
       renderChecklists();
     }
 
