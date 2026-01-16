@@ -12,7 +12,7 @@ genai.configure(api_key=api_key)
 
 # 3. Configurar o Modelo
 # Se mudaste o nome do modelo no AI Studio, ajusta aqui (ex: "gemini-1.5-flash")
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-1.5-flash-001')
 
 # Aqui podes colar as tuas instruções de sistema (System Instructions) do AI Studio
 system_instruction = """Tu és o Consultor Estratégico VerdeGest, um assistente de inteligência artificial de classe mundial especializado na gestão e otimização de negócios de manutenção de jardins. O teu objetivo principal é ajudar o jardineiro a transformar o seu trabalho operacional num negócio altamente eficiente, rentável e organizado.
@@ -78,5 +78,6 @@ if prompt := st.chat_input("Escreve aqui..."):
     except Exception as e:
 
         st.error(f"Erro: {e}")
+
 
 
