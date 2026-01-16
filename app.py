@@ -2,8 +2,8 @@ import streamlit as st
 import google.generativeai as genai
 
 # 1. Configuração da Página
-st.set_page_config(page_title="A Minha App AI", page_icon="🤖")
-st.title("O Meu Assistente AI")
+st.set_page_config(page_title="VerdeGest", page_icon="🤖")
+st.title("Consultor Estratégico VerdeGest"))
 
 # 2. Configurar a Chave (Vamos fazer isto no site a seguir)
 # O Streamlit vai procurar a chave nas configurações secretas
@@ -78,3 +78,4 @@ if prompt := st.chat_input("Escreve aqui..."):
     except Exception as e:
 
         st.error(f"Erro: {e}")
+
