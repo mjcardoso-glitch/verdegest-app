@@ -1,641 +1,599 @@
-import React, { useState, useEffect } from 'react';
-import { Job, JobStatus, WorkerType, PricingType, PaymentStatus, ServiceType, Settings, RecurrenceType } from '../types';
-import { generateGoogleCalendarLink } from '../utils/calendar';
-import { GoogleGenAI, Type } from "@google/genai";
-
-interface Props {
-  jobs: Job[];
-  settings: Settings;
-  onAddJob: (job: Job) => void;
-  onDeleteJob: (id: string) => void;
-  onUpdateStatus: (id: string, status: JobStatus) => void;
-  onUpdatePayment: (id: string, status: PaymentStatus) => void;
-  onUpdateSync: (id: string) => void;
-  onAddCustomTask: (task: string) => void;
-  onAddEmployee: (name: string) => void;
-}
-
-const DEFAULT_TASKS = [
-  'Corte de relva',
-  'Poda de árvores/arbustos',
-  'Limpeza de canteiros',
-  'Fertilização',
-  'Tratamento fitossanitário',
-  'Manutenção de rega',
-  'Plantação',
-  'Remoção de resíduos'
-];
-
-const JobLog: React.FC<Props> = ({ 
-  jobs, settings, onAddJob, onDeleteJob, onUpdateStatus, onUpdatePayment, onUpdateSync, onAddCustomTask, onAddEmployee 
-}) => {
-  const [showForm, setShowForm] = useState(false);
-  const [timerActive, setTimerActive] = useState(false);
-  const [timerStart, setTimerStart] = useState<number | null>(null);
-  const [elapsedTime, setElapsedTime] = useState(0);
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+  <title>VerdeGest Pro - Gestão Profissional</title>
   
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<JobStatus | 'all'>('all');
-  const [serviceTypeFilter, setServiceTypeFilter] = useState<ServiceType | 'all'>('all');
-  const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | 'all'>('all');
+  <meta name="theme-color" content="#065f46">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  const [isOptimizing, setIsOptimizing] = useState(false);
-  const [optimizedRoute, setOptimizedRoute] = useState<{order: string[], explanation: string} | null>(null);
+  <style>
+    :root { --safe-area-inset-bottom: env(safe-area-inset-bottom); }
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; -webkit-tap-highlight-color: transparent; }
+    .view { display: none; }
+    .view.active { display: block; animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .card-shadow { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.02); }
+    input, select, textarea { font-size: 16px !important; }
+    .safe-area-bottom { padding-bottom: calc(0.5rem + var(--safe-area-inset-bottom)); }
+    .sidebar-active { background: #10b981; color: white !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }
+    .nav-btn.active { color: #10b981; }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "recharts": "https://esm.sh/recharts@^3.6.0"
+  }
+}
+</script>
+</head>
+<body class="selection:bg-emerald-100">
 
-  const [formData, setFormData] = useState({
-    clientName: '',
-    category: '',
-    date: new Date().toISOString().split('T')[0],
-    startTime: '09:00',
-    endTime: '11:00',
-    tasks: [] as string[],
-    rate: 20,
-    pricingType: 'hourly' as PricingType,
-    workerType: 'alone' as WorkerType,
-    workerNames: [] as string[],
-    additionalWorkers: '', // Novo campo para colaboradores manuais
-    status: 'scheduled' as JobStatus,
-    paymentStatus: 'unpaid' as PaymentStatus,
-    serviceType: 'regular' as ServiceType,
-    recurrence: 'none' as RecurrenceType,
-    notes: '',
-    location: undefined as { lat: number, lng: number } | undefined
-  });
+  <div class="min-h-screen flex flex-col md:flex-row pb-24 md:pb-0">
+    <!-- Sidebar Desktop -->
+    <aside class="hidden md:flex w-72 bg-slate-900 text-white p-10 flex-col shrink-0 shadow-2xl z-20">
+      <div class="flex items-center gap-4 mb-12">
+        <div class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <i class="fas fa-leaf text-white text-xl"></i>
+        </div>
+        <h1 class="text-2xl font-black tracking-tighter uppercase">VerdeGest</h1>
+      </div>
+      <nav class="flex-1 space-y-2">
+        <button onclick="switchView('dashboard')" id="side-dashboard" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all sidebar-active">
+          <i class="fas fa-chart-pie mr-4 w-5"></i> Resumo
+        </button>
+        <button onclick="switchView('jobs')" id="side-jobs" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all">
+          <i class="fas fa-calendar-alt mr-4 w-5"></i> Agenda
+        </button>
+        <button onclick="switchView('finance')" id="side-finance" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all">
+          <i class="fas fa-wallet mr-4 w-5"></i> Custos
+        </button>
+        <button onclick="switchView('ai')" id="side-ai" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all">
+          <i class="fas fa-robot mr-4 w-5"></i> IA Pro
+        </button>
+        <button onclick="switchView('settings')" id="side-settings" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all">
+          <i class="fas fa-cloud mr-4 w-5"></i> Cloud
+        </button>
+      </nav>
+      <div class="mt-auto pt-6 border-t border-slate-800">
+        <div class="flex items-center gap-3">
+          <div id="sync-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+          <span id="sync-label" class="text-[9px] font-black uppercase text-slate-500 tracking-widest">A Carregar...</span>
+        </div>
+      </div>
+    </aside>
 
-  const [newTaskInput, setNewTaskInput] = useState('');
-  const [newEmployeeInput, setNewEmployeeInput] = useState('');
+    <!-- Main Content -->
+    <main class="flex-1 p-5 md:p-14 max-w-6xl mx-auto w-full overflow-y-auto">
+      
+      <!-- Mobile Header -->
+      <header class="mb-8 flex justify-between items-center md:hidden">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-600/20">
+            <i class="fas fa-leaf text-white text-sm"></i>
+          </div>
+          <h1 class="text-xl font-black tracking-tighter text-slate-900 uppercase">VerdeGest</h1>
+        </div>
+        <div id="mobile-badge" class="px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700">A Ler...</div>
+      </header>
 
-  const allTasks = Array.from(new Set([...DEFAULT_TASKS, ...settings.customTasks]));
-  const uniqueClients = Array.from(new Set(jobs.map(j => j.clientName))).sort();
-  const allCategories = Array.from(new Set([...(settings.categories || []), "Relva", "Poda", "Rega", "Limpeza", "Plantação"])).sort();
+      <!-- VIEW: DASHBOARD -->
+      <section id="view-dashboard" class="view active">
+        <div class="space-y-6">
+          <div class="bg-gradient-to-br from-emerald-600 to-teal-800 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
+            <div class="relative z-10">
+              <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Balanço Líquido (Mês)</p>
+              <h2 id="dash-balance" class="text-5xl font-black mt-2 tracking-tighter">0.00€</h2>
+              <div class="flex gap-4 mt-8">
+                <div class="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/5 flex-1">
+                  <p class="text-[9px] font-black opacity-60 uppercase">Facturado</p>
+                  <p id="dash-income" class="text-lg font-black">0.00€</p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/5 flex-1">
+                  <p class="text-[9px] font-black opacity-60 uppercase">Gastos</p>
+                  <p id="dash-cost" class="text-lg font-black text-emerald-200">0.00€</p>
+                </div>
+              </div>
+            </div>
+            <i class="fas fa-seedling absolute -right-10 -bottom-10 text-[14rem] opacity-5 rotate-12"></i>
+          </div>
 
-  useEffect(() => {
-    let interval: number;
-    if (timerActive) {
-      interval = window.setInterval(() => {
-        if (timerStart) {
-          setElapsedTime(Math.floor((Date.now() - timerStart) / 1000));
-        }
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [timerActive, timerStart]);
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-[2rem] border border-slate-100 card-shadow">
+              <h3 class="text-[10px] font-black uppercase text-slate-400 mb-6 flex items-center gap-2">
+                <i class="fas fa-chart-line"></i> Evolução
+              </h3>
+              <div class="h-64 relative">
+                <canvas id="dashChart"></canvas>
+              </div>
+            </div>
+            <div class="bg-slate-900 p-8 rounded-[2rem] text-white shadow-xl flex flex-col justify-center">
+              <h3 class="text-[10px] font-black uppercase text-emerald-400 mb-6 tracking-widest">Resumo Hoje</h3>
+              <div class="space-y-4">
+                <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
+                  <span class="text-xs font-bold text-slate-400">Serviços Pendentes</span>
+                  <span id="dash-jobs-pending" class="text-xl font-black">0</span>
+                </div>
+                <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
+                  <span class="text-xs font-bold text-slate-400">Dívidas Clientes</span>
+                  <span id="dash-debts" class="text-xl font-black text-rose-400">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocalização não é suportada pelo seu navegador.");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition((pos) => {
-      setFormData(prev => ({
-        ...prev,
-        location: { lat: pos.coords.latitude, lng: pos.coords.longitude }
-      }));
-    }, (err) => {
-      alert("Erro ao obter localização: " + err.message);
+      <!-- VIEW: JOBS -->
+      <section id="view-jobs" class="view">
+        <div class="space-y-6">
+          <div class="flex justify-between items-center">
+            <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Agenda</h2>
+            <div class="flex gap-2">
+               <button onclick="toggleTimer()" class="bg-rose-500 text-white px-4 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-rose-500/20 active:scale-95 transition-all">
+                  <i class="fas fa-play mr-2"></i> <span id="timer-label">Timer</span>
+               </button>
+               <button onclick="toggleElement('job-form-box')" class="bg-emerald-600 text-white px-5 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-emerald-600/20 active:scale-95 transition-all">
+                  + Novo
+               </button>
+            </div>
+          </div>
+
+          <div id="job-form-box" class="hidden animate-in">
+            <form id="form-job" class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-1">
+                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Cliente</label>
+                  <input required id="j-client" placeholder="Ex: Sra. Maria" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>
+                <div class="space-y-1">
+                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Categoria</label>
+                  <select id="j-category" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
+                    <option value="Relva">Relva</option>
+                    <option value="Poda">Poda</option>
+                    <option value="Rega">Rega</option>
+                    <option value="Limpeza">Limpeza</option>
+                    <option value="Tratamento">Tratamento</option>
+                  </select>
+                </div>
+                <div class="space-y-1">
+                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Colaboradores / Equipa</label>
+                  <input id="j-workers" placeholder="Ex: João, Pedro" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>
+                <div class="space-y-1">
+                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Valor (€)</label>
+                  <input type="number" step="0.5" id="j-price" value="30" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>
+                <div class="space-y-1">
+                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Tipo</label>
+                  <select id="j-type" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
+                    <option value="regular">Regular</option>
+                    <option value="extra">Extra</option>
+                  </select>
+                </div>
+                <div class="space-y-1">
+                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Data</label>
+                  <input type="date" id="j-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
+                </div>
+                <div class="space-y-1">
+                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Recorrência</label>
+                  <select id="j-recurrence" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
+                    <option value="none">Uma vez</option>
+                    <option value="weekly">Semanal (12x)</option>
+                    <option value="biweekly">Quinzenal (6x)</option>
+                    <option value="monthly">Mensal (6x)</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-black shadow-lg">Confirmar Agendamento</button>
+            </form>
+          </div>
+
+          <div id="jobs-list" class="space-y-4 pb-12">
+            <!-- Jobs dinâmicos -->
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: FINANCE -->
+      <section id="view-finance" class="view">
+        <div class="space-y-6">
+          <div class="flex justify-between items-center">
+            <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Custos Operacionais</h2>
+            <button onclick="toggleElement('exp-form-box')" class="bg-rose-500 text-white px-5 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-rose-500/20 active:scale-95 transition-all">
+              + Registar Gasto
+            </button>
+          </div>
+
+          <div id="exp-form-box" class="hidden animate-in">
+            <form id="form-expense" class="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 space-y-4">
+              <input required id="e-desc" placeholder="Descrição do Gasto" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm outline-none">
+              <div class="grid grid-cols-2 gap-4">
+                <input type="number" step="0.01" id="e-amount" placeholder="Valor €" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm">
+                <input type="date" id="e-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm">
+              </div>
+              <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg">Gravar Despesa</button>
+            </form>
+          </div>
+
+          <div class="bg-white rounded-[2.5rem] border border-slate-100 card-shadow overflow-hidden">
+            <table class="w-full text-left">
+              <thead class="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  <th class="px-6 py-5 text-[10px] font-black uppercase text-slate-400">Data</th>
+                  <th class="px-6 py-5 text-[10px] font-black uppercase text-slate-400">Descrição</th>
+                  <th class="px-6 py-5 text-[10px] font-black uppercase text-slate-400 text-right">Valor</th>
+                </tr>
+              </thead>
+              <tbody id="expenses-body" class="divide-y divide-slate-50"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: AI PRO -->
+      <section id="view-ai" class="view">
+        <div class="space-y-8 text-center max-w-2xl mx-auto py-10">
+          <div class="w-24 h-24 bg-emerald-100 rounded-[2rem] flex items-center justify-center text-emerald-600 text-4xl mx-auto shadow-inner">
+            <i class="fas fa-robot"></i>
+          </div>
+          <h2 class="text-3xl font-black text-slate-800 uppercase tracking-tight">Análise Estratégica</h2>
+          <button onclick="generateInsights()" id="btn-insights" class="bg-emerald-600 text-white px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl shadow-emerald-600/30 active:scale-95 transition-all">
+            Analisar Performance (IA)
+          </button>
+          <div id="ai-report" class="hidden text-left bg-white p-8 rounded-[2.5rem] card-shadow border border-emerald-50 text-slate-700 leading-relaxed text-sm animate-in whitespace-pre-line"></div>
+        </div>
+      </section>
+
+      <!-- VIEW: SETTINGS -->
+      <section id="view-settings" class="view">
+        <div class="space-y-6">
+          <div class="bg-white p-8 rounded-[2.5rem] card-shadow border border-slate-100">
+            <h2 class="text-xl font-black text-slate-800 uppercase mb-4 flex items-center gap-2">
+              <i class="fas fa-cloud-arrow-up text-emerald-500"></i> Google Sheets Link
+            </h2>
+            <div class="space-y-4">
+              <input id="s-url" type="text" placeholder="URL do Apps Script..." class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-5 text-xs font-mono outline-none focus:ring-2 focus:ring-emerald-500">
+              <button onclick="saveSettings()" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-emerald-600/20 active:scale-95 transition-all">
+                Salvar e Sincronizar
+              </button>
+            </div>
+          </div>
+          <div class="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl">
+             <button onclick="manualSync()" class="w-full bg-white text-slate-900 py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-all">
+                <i class="fas fa-sync mr-2"></i> Sincronizar Agora
+             </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Mobile Nav -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 glass border-t border-slate-200 flex justify-around p-4 z-50 safe-area-bottom shadow-2xl">
+      <button onclick="switchView('dashboard')" id="mbtn-dashboard" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 text-slate-400 active">
+        <i class="fas fa-chart-pie text-lg"></i>
+        <span class="text-[8px] font-black uppercase tracking-tighter">Início</span>
+      </button>
+      <button onclick="switchView('jobs')" id="mbtn-jobs" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 text-slate-400">
+        <i class="fas fa-calendar-alt text-lg"></i>
+        <span class="text-[8px] font-black uppercase tracking-tighter">Agenda</span>
+      </button>
+      <button onclick="switchView('finance')" id="mbtn-finance" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 text-slate-400">
+        <i class="fas fa-wallet text-lg"></i>
+        <span class="text-[8px] font-black uppercase tracking-tighter">Custos</span>
+      </button>
+      <button onclick="switchView('ai')" id="mbtn-ai" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 text-slate-400">
+        <i class="fas fa-robot text-lg"></i>
+        <span class="text-[8px] font-black uppercase tracking-tighter">IA</span>
+      </button>
+      <button onclick="switchView('settings')" id="mbtn-settings" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 text-slate-400">
+        <i class="fas fa-cloud text-lg"></i>
+        <span class="text-[8px] font-black uppercase tracking-tighter">Cloud</span>
+      </button>
+    </nav>
+  </div>
+
+  <script type="module">
+    import { GoogleGenAI } from "@google/genai";
+
+    // --- ESTADO ---
+    let state = {
+      jobs: JSON.parse(localStorage.getItem('vg_jobs')) || [],
+      expenses: JSON.parse(localStorage.getItem('vg_exp')) || [],
+      settings: JSON.parse(localStorage.getItem('vg_set')) || { googleScriptUrl: '' },
+      timer: { active: false, start: null }
+    };
+
+    let chart = null;
+    let timerInterval = null;
+
+    // --- CARREGAMENTO INICIAL ---
+    window.addEventListener('load', async () => {
+      // 1. Mostrar o que já está no localStorage imediatamente
+      renderAll();
+      initChart();
+      
+      // 2. Preencher inputs persistentes
+      document.getElementById('j-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('e-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('s-url').value = state.settings.googleScriptUrl || '';
+
+      // 3. Tentar ir buscar os dados mais recentes à nuvem
+      if (state.settings.googleScriptUrl) {
+        await autoFetchFromCloud();
+      } else {
+        updateSyncStatus('Local (Sem Nuvem)');
+      }
     });
-  };
 
-  const handleOptimizeRoute = async () => {
-    const today = new Date().toISOString().split('T')[0];
-    const todayJobs = jobs.filter(j => j.date === today && j.status === 'scheduled' && j.location);
-
-    if (todayJobs.length < 2) {
-      alert("São necessários pelo menos 2 serviços agendados com localização para otimizar a rota.");
-      return;
+    // --- CLOUD ENGINE ---
+    async function autoFetchFromCloud() {
+      if (!state.settings.googleScriptUrl) return;
+      
+      updateSyncStatus('A ler Nuvem...');
+      
+      try {
+        // GET para o Apps Script
+        const response = await fetch(state.settings.googleScriptUrl);
+        const cloudData = await response.json();
+        
+        if (cloudData && (cloudData.jobs || cloudData.expenses)) {
+          // Só atualizamos se houver dados reais para não limpar o telemóvel por erro
+          if (cloudData.jobs) state.jobs = cloudData.jobs;
+          if (cloudData.expenses) state.expenses = cloudData.expenses;
+          
+          // Salvar localmente o que veio da nuvem
+          localStorage.setItem('vg_jobs', JSON.stringify(state.jobs));
+          localStorage.setItem('vg_exp', JSON.stringify(state.expenses));
+          
+          renderAll();
+          updateSyncStatus('Nuvem Sincronizada');
+        } else {
+          updateSyncStatus('Nuvem Vazia');
+        }
+      } catch (e) {
+        console.error("Erro ao carregar da nuvem:", e);
+        updateSyncStatus('Erro Cloud (Local OK)');
+      }
     }
 
-    setIsOptimizing(true);
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    const locationsContext = todayJobs.map(j => ({
-      id: j.id,
-      client: j.clientName,
-      lat: j.location!.lat,
-      lng: j.location!.lng
-    }));
+    window.manualSync = async () => {
+      if (!state.settings.googleScriptUrl) {
+        alert("Configure primeiro o URL nas Definições.");
+        return;
+      }
+      
+      updateSyncStatus('A Enviar...');
+      
+      try {
+        const payload = {
+          jobs: state.jobs,
+          expenses: state.expenses,
+          timestamp: new Date().toISOString()
+        };
 
-    const prompt = `
-      Como um especialista em logística, otimize a rota de trabalho para hoje.
-      Abaixo estão os clientes e suas coordenadas (Latitude e Longitude):
-      ${JSON.stringify(locationsContext)}
+        await fetch(state.settings.googleScriptUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify(payload)
+        });
 
-      Forneça a ordem ideal de visita para minimizar o tempo de deslocação entre eles.
-    `;
+        updateSyncStatus('Enviado OK');
+        // Depois de enviar, tenta ler de volta para confirmar
+        setTimeout(autoFetchFromCloud, 2000);
+      } catch (e) {
+        updateSyncStatus('Erro no Envio');
+      }
+    };
 
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: prompt,
-        config: { 
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              order: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: 'The IDs of the jobs in the optimized order.'
-              },
-              explanation: {
-                type: Type.STRING,
-                description: 'Brief explanation of the route efficiency.'
-              }
-            },
-            required: ["order", "explanation"]
-          },
-          thinkingConfig: { thinkingBudget: 4000 }
+    function updateSyncStatus(text) {
+      const dot = document.getElementById('sync-dot');
+      const label = document.getElementById('sync-label');
+      const badge = document.getElementById('mobile-badge');
+      
+      if (label) label.innerText = text;
+      if (badge) badge.innerText = text;
+
+      if (text.includes('Erro')) {
+        dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+      } else if (text.includes('ler') || text.includes('Enviar')) {
+        dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse";
+      } else {
+        dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
+      }
+    }
+
+    // --- UI ENGINE ---
+    window.switchView = (viewName) => {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-' + viewName).classList.add('active');
+      
+      document.querySelectorAll('.nav-btn, .sidebar-btn').forEach(b => {
+        b.classList.remove('active', 'sidebar-active');
+        if (b.id.includes(viewName)) {
+           if(b.classList.contains('sidebar-btn')) b.classList.add('sidebar-active');
+           else b.classList.add('active');
         }
       });
+    };
+
+    window.toggleElement = (id) => document.getElementById(id).classList.toggle('hidden');
+
+    function renderAll() {
+      renderDashboard();
+      renderJobs();
+      renderExpenses();
+    }
+
+    function renderDashboard() {
+      const completed = state.jobs.filter(j => j.status === 'completed');
+      const income = completed.reduce((s, j) => s + (Number(j.totalValue) || 0), 0);
+      const cost = state.expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       
-      const text = response.text;
-      if (text) {
-        const result = JSON.parse(text);
-        setOptimizedRoute(result);
+      document.getElementById('dash-balance').innerText = (income - cost).toFixed(2) + '€';
+      document.getElementById('dash-income').innerText = income.toFixed(2) + '€';
+      document.getElementById('dash-cost').innerText = cost.toFixed(2) + '€';
+      document.getElementById('dash-jobs-pending').innerText = state.jobs.filter(j => j.status !== 'completed').length;
+      document.getElementById('dash-debts').innerText = state.jobs.filter(j => j.paymentStatus === 'unpaid' && j.status === 'completed').length;
+
+      if(chart) {
+        chart.data.datasets[0].data = [income, cost];
+        chart.update();
       }
-    } catch (error) {
-      console.error("Erro na otimização:", error);
-      alert("Não foi possível otimizar a rota neste momento.");
-    } finally {
-      setIsOptimizing(false);
-    }
-  };
-
-  const toggleTask = (task: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tasks: prev.tasks.includes(task) ? prev.tasks.filter(t => t !== task) : [...prev.tasks, task]
-    }));
-  };
-
-  const handleAddNewTask = () => {
-    if (newTaskInput.trim()) {
-      onAddCustomTask(newTaskInput.trim());
-      setNewTaskInput('');
-    }
-  };
-
-  const handleAddNewEmployee = () => {
-    if (newEmployeeInput.trim()) {
-      onAddEmployee(newEmployeeInput.trim());
-      setNewEmployeeInput('');
-    }
-  };
-
-  const toggleWorker = (name: string) => {
-    setFormData(prev => ({
-      ...prev,
-      workerNames: prev.workerNames.includes(name) ? prev.workerNames.filter(n => n !== name) : [...prev.workerNames, name]
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    let totalValue = 0;
-    if (formData.pricingType === 'hourly') {
-      const start = new Date(`${formData.date}T${formData.startTime}`);
-      const end = new Date(`${formData.date}T${formData.endTime}`);
-      const diffHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-      totalValue = Math.max(0, diffHours * formData.rate);
-    } else {
-      totalValue = formData.rate;
     }
 
-    const baseId = Date.now();
-    const recurrenceCount = formData.recurrence === 'weekly' ? 12 : formData.recurrence === 'biweekly' ? 6 : formData.recurrence === 'monthly' ? 6 : 1;
-    const daysInterval = formData.recurrence === 'weekly' ? 7 : formData.recurrence === 'biweekly' ? 14 : formData.recurrence === 'monthly' ? 30 : 0;
+    function renderJobs() {
+      const list = document.getElementById('jobs-list');
+      list.innerHTML = '';
 
-    let firstJob: Job | null = null;
-
-    // Combinar workers selecionados com workers inseridos manualmente
-    const finalWorkers = [...formData.workerNames];
-    if (formData.additionalWorkers.trim()) {
-      finalWorkers.push(...formData.additionalWorkers.split(',').map(s => s.trim()));
-    }
-
-    for (let i = 0; i < recurrenceCount; i++) {
-      const nextDate = new Date(formData.date);
-      if (formData.recurrence === 'monthly') {
-        nextDate.setMonth(nextDate.getMonth() + i);
-      } else {
-        nextDate.setDate(nextDate.getDate() + (i * daysInterval));
+      if (state.jobs.length === 0) {
+        list.innerHTML = `<div class="text-center py-20 bg-white rounded-[2rem] border border-dashed border-slate-200 text-slate-400 font-bold uppercase text-[10px]">Sem Agenda</div>`;
+        return;
       }
 
-      const newJob: Job = {
-        ...formData,
-        id: (baseId + i).toString(),
-        date: nextDate.toISOString().split('T')[0],
-        totalValue,
-        workerNames: finalWorkers,
-        syncedToCalendar: false
+      state.jobs.sort((a,b) => b.date.localeCompare(a.date)).forEach(j => {
+        const div = document.createElement('div');
+        div.className = "bg-white p-6 rounded-[2rem] border border-slate-100 card-shadow flex justify-between items-center";
+        
+        const workersInfo = j.workers ? `<p class="text-[9px] text-emerald-600 font-black uppercase mt-2"><i class="fas fa-users mr-1"></i> ${j.workers}</p>` : '';
+
+        div.innerHTML = `
+          <div class="flex-1">
+            <h4 class="font-black text-slate-800">${j.clientName} <span class="text-[8px] bg-slate-100 px-1.5 py-0.5 rounded ml-2">${j.serviceType.toUpperCase()}</span></h4>
+            <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">${j.date} • ${j.category}</p>
+            ${workersInfo}
+          </div>
+          <div class="text-right ml-4">
+            <p class="font-black text-slate-900">${Number(j.totalValue).toFixed(2)}€</p>
+            <div class="flex gap-2 mt-2">
+              ${j.status !== 'completed' ? `<button onclick="updateJobStatus('${j.id}', 'completed')" class="text-[9px] font-black uppercase text-emerald-600">Concluir</button>` : `<span class="text-[9px] text-emerald-500 font-black">OK</span>`}
+              <button onclick="deleteJob('${j.id}')" class="text-[9px] font-black uppercase text-rose-500">Apagar</button>
+            </div>
+          </div>`;
+        list.appendChild(div);
+      });
+    }
+
+    function renderExpenses() {
+      const tbody = document.getElementById('expenses-body');
+      tbody.innerHTML = '';
+      state.expenses.forEach(e => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="px-6 py-4 text-xs font-bold">${e.date}</td><td class="px-6 py-4 text-xs font-black uppercase">${e.description}</td><td class="px-6 py-4 text-sm font-black text-rose-500 text-right">-${Number(e.amount).toFixed(2)}€</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --- ACTIONS ---
+    document.getElementById('form-job').onsubmit = (e) => {
+      e.preventDefault();
+      const job = {
+        id: Date.now().toString(),
+        clientName: document.getElementById('j-client').value,
+        category: document.getElementById('j-category').value,
+        workers: document.getElementById('j-workers').value,
+        totalValue: Number(document.getElementById('j-price').value),
+        serviceType: document.getElementById('j-type').value,
+        date: document.getElementById('j-date').value,
+        status: 'scheduled',
+        paymentStatus: 'unpaid'
       };
-      
-      if (i === 0) firstJob = newJob;
-      onAddJob(newJob);
+      state.jobs.push(job);
+      saveLocal();
+      manualSync();
+      toggleElement('job-form-box');
+      document.getElementById('form-job').reset();
+    };
+
+    document.getElementById('form-expense').onsubmit = (e) => {
+      e.preventDefault();
+      state.expenses.push({
+        id: Date.now().toString(),
+        description: document.getElementById('e-desc').value,
+        amount: Number(document.getElementById('e-amount').value),
+        date: document.getElementById('e-date').value
+      });
+      saveLocal();
+      manualSync();
+      toggleElement('exp-form-box');
+      document.getElementById('form-expense').reset();
+    };
+
+    window.updateJobStatus = (id, s) => {
+      state.jobs = state.jobs.map(j => j.id === id ? {...j, status: s} : j);
+      saveLocal();
+      manualSync();
+    };
+
+    window.deleteJob = (id) => {
+      if(!confirm("Apagar?")) return;
+      state.jobs = state.jobs.filter(j => j.id !== id);
+      saveLocal();
+      manualSync();
+    };
+
+    window.saveSettings = () => {
+      state.settings.googleScriptUrl = document.getElementById('s-url').value;
+      localStorage.setItem('vg_set', JSON.stringify(state.settings));
+      manualSync();
+    };
+
+    function saveLocal() {
+      localStorage.setItem('vg_jobs', JSON.stringify(state.jobs));
+      localStorage.setItem('vg_exp', JSON.stringify(state.expenses));
+      renderAll();
     }
 
-    if (settings.autoSyncCalendar && firstJob) {
-      const url = generateGoogleCalendarLink(firstJob);
-      window.open(url, '_blank');
-      onUpdateSync(firstJob.id);
+    // --- CHART ---
+    function initChart() {
+      const ctx = document.getElementById('dashChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Facturação', 'Gastos'],
+          datasets: [{ data: [0, 0], backgroundColor: ['#10b981', '#f43f5e'], borderRadius: 10 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { display: false }, x: { grid: { display: false } } }
+        }
+      });
     }
 
-    setShowForm(false);
-    setTimerActive(false);
-    setElapsedTime(0);
-    setFormData({ 
-      ...formData, 
-      clientName: '', 
-      category: '',
-      tasks: [], 
-      workerNames: [], 
-      additionalWorkers: '',
-      status: 'scheduled', 
-      paymentStatus: 'unpaid', 
-      serviceType: 'regular',
-      recurrence: 'none',
-      notes: '',
-      location: undefined
-    });
-  };
+    // --- IA INSIGHTS ---
+    window.generateInsights = async () => {
+      const btn = document.getElementById('btn-insights');
+      const reportDiv = document.getElementById('ai-report');
+      btn.disabled = true;
+      btn.innerHTML = 'A Analisar...';
 
-  const handleStartTimer = () => {
-    const now = new Date();
-    setTimerStart(Date.now());
-    setTimerActive(true);
-    setFormData(prev => ({ ...prev, startTime: now.toTimeString().slice(0, 5), date: now.toISOString().split('T')[0], status: 'pending' }));
-    setShowForm(true);
-  };
-
-  const filteredJobs = jobs.filter(job => {
-    const matchesSearch = job.clientName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
-    const matchesService = serviceTypeFilter === 'all' || job.serviceType === serviceTypeFilter;
-    const matchesPayment = paymentFilter === 'all' || job.paymentStatus === paymentFilter;
-    
-    return matchesSearch && matchesStatus && matchesService && matchesPayment;
-  });
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-        <h2 className="text-xl font-bold text-slate-800">Agenda e Registos</h2>
-        <div className="flex gap-2">
-          {!timerActive ? (
-            <button onClick={handleStartTimer} className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl transition shadow-md font-bold text-sm">
-              <i className="fas fa-play mr-2"></i> Cronómetro
-            </button>
-          ) : (
-            <div className="flex items-center bg-white border border-rose-200 px-4 py-2 rounded-xl shadow-sm gap-4">
-              <span className="text-rose-600 font-mono font-bold animate-pulse">{(elapsedTime / 3600).toFixed(0).padStart(2,'0')}:{((elapsedTime % 3600)/60).toFixed(0).padStart(2,'0')}</span>
-              <button onClick={() => setTimerActive(false)} className="text-rose-600 font-bold">Parar</button>
-            </div>
-          )}
-          <button onClick={() => setShowForm(!showForm)} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm">
-            {showForm ? 'Fechar' : '+ Novo Serviço'}
-          </button>
-        </div>
-      </div>
-
-      {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-md border border-slate-100 space-y-6 animate-in fade-in zoom-in duration-300">
-          <datalist id="clients-list">
-            {uniqueClients.map(c => <option key={c} value={c} />)}
-          </datalist>
-          <datalist id="categories-list">
-            {allCategories.map(c => <option key={c} value={c} />)}
-          </datalist>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-1 lg:col-span-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Cliente</label>
-              <div className="flex gap-2">
-                <input required list="clients-list" className="flex-1 border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" value={formData.clientName} onChange={e => setFormData({ ...formData, clientName: e.target.value })} />
-                <button type="button" onClick={handleGetLocation} title="Obter Localização" className={`px-3 rounded-lg border text-xs font-bold transition ${formData.location ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>
-                  <i className="fas fa-map-marker-alt"></i>
-                </button>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Categoria</label>
-              <input 
-                required 
-                list="categories-list" 
-                className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" 
-                placeholder="Ex: Relva, Poda..."
-                value={formData.category} 
-                onChange={e => setFormData({ ...formData, category: e.target.value })} 
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Data de Início</label>
-              <input type="date" required className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Início</label>
-                <input type="time" required className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Fim</label>
-                <input type="time" required className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 border-t border-slate-50 pt-4">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Tipo de Serviço</label>
-              <div className="flex bg-slate-100 p-1 rounded-lg">
-                <button type="button" onClick={() => setFormData({...formData, serviceType: 'regular'})} className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all ${formData.serviceType === 'regular' ? 'bg-white shadow text-emerald-600' : 'text-slate-500'}`}>MANUTENÇÃO</button>
-                <button type="button" onClick={() => setFormData({...formData, serviceType: 'extra'})} className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all ${formData.serviceType === 'extra' ? 'bg-white shadow text-amber-600' : 'text-slate-500'}`}>EXTRA</button>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Repetição</label>
-              <select className="w-full border border-slate-200 rounded-lg p-2 text-sm" value={formData.recurrence} onChange={e => setFormData({...formData, recurrence: e.target.value as RecurrenceType})}>
-                <option value="none">Não repetir</option>
-                <option value="weekly">Semanal (12 sem.)</option>
-                <option value="biweekly">Quinzenal (6x)</option>
-                <option value="monthly">Mensal (6 meses)</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Estado Pagamento</label>
-              <select className="w-full border border-slate-200 rounded-lg p-2 text-sm" value={formData.paymentStatus} onChange={e => setFormData({...formData, paymentStatus: e.target.value as PaymentStatus})}>
-                <option value="unpaid">Em Dívida</option>
-                <option value="paid">Pago</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Estado do Job</label>
-              <select className="w-full border border-slate-200 rounded-lg p-2 text-sm" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as JobStatus})}>
-                <option value="scheduled">Agendado</option>
-                <option value="pending">Pendente</option>
-                <option value="completed">Concluído</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-3 border-t border-slate-50 pt-4">
-            <div className="flex justify-between items-center">
-              <label className="text-xs font-bold text-slate-500 uppercase">Checklist de Tarefas</label>
-              <div className="flex gap-2">
-                <input placeholder="Nova tarefa..." className="text-xs border border-slate-200 rounded px-2 py-1" value={newTaskInput} onChange={e => setNewTaskInput(e.target.value)} />
-                <button type="button" onClick={handleAddNewTask} className="text-xs bg-slate-100 px-2 rounded hover:bg-slate-200 transition">+</button>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-              {allTasks.map(task => (
-                <button key={task} type="button" onClick={() => toggleTask(task)} className={`text-[10px] p-2 rounded-lg border transition text-left ${formData.tasks.includes(task) ? 'bg-emerald-100 border-emerald-500 text-emerald-800 font-bold' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-                  {task}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Equipa (Sugeridos)</label>
-                  <div className="flex gap-2">
-                    <input placeholder="Novo funcionário..." className="text-xs border border-slate-200 rounded px-2 py-1" value={newEmployeeInput} onChange={e => setNewEmployeeInput(e.target.value)} />
-                    <button type="button" onClick={handleAddNewEmployee} className="text-xs bg-slate-100 px-2 rounded hover:bg-slate-200 transition">+</button>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={() => setFormData({...formData, workerType: 'alone', workerNames: []})} className={`text-xs px-3 py-1 rounded-full border ${formData.workerType === 'alone' ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-slate-50 text-slate-500'}`}>Sozinho</button>
-                  {settings.employees.map(emp => (
-                    <button key={emp} type="button" onClick={() => { setFormData({...formData, workerType: 'with_employees'}); toggleWorker(emp); }} className={`text-xs px-3 py-1 rounded-full border transition ${formData.workerNames.includes(emp) ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-slate-50 text-slate-500'}`}>
-                      {emp}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase">Outros Colaboradores (Inserção Manual)</label>
-                <input 
-                  placeholder="Nomes separados por vírgula..." 
-                  className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" 
-                  value={formData.additionalWorkers} 
-                  onChange={e => setFormData({...formData, additionalWorkers: e.target.value})}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase">Preço</label>
-              <div className="flex gap-2">
-                <select className="flex-1 border border-slate-200 rounded-lg p-2 text-sm" value={formData.pricingType} onChange={e => setFormData({...formData, pricingType: e.target.value as PricingType})}>
-                  <option value="hourly">€ / Hora</option>
-                  <option value="fixed">Valor Fixo</option>
-                </select>
-                <input type="number" className="flex-1 border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" value={formData.rate} onChange={e => setFormData({...formData, rate: Number(e.target.value)})} />
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-1 border-t pt-4">
-            <label className="text-xs font-bold text-slate-500 uppercase">Notas Adicionais</label>
-            <textarea 
-              className="w-full border border-slate-200 rounded-lg p-3 text-sm min-h-[100px] focus:ring-2 focus:ring-emerald-500 outline-none" 
-              placeholder="Adicione observações sobre o jardim..." 
-              value={formData.notes} 
-              onChange={e => setFormData({ ...formData, notes: e.target.value })}
-            ></textarea>
-          </div>
-
-          <button type="submit" className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-emerald-600/20 active:scale-[0.98] transition-transform">
-            {formData.recurrence !== 'none' ? 'Registar Recorrência' : 'Registar Serviço'}
-          </button>
-        </form>
-      )}
-
-      {/* SECÇÃO DE OTIMIZAÇÃO DE ROTA */}
-      <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-3xl shadow-xl border border-slate-700 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <i className="fas fa-route text-white"></i>
-            </div>
-            <div>
-              <h3 className="text-white font-bold">Otimizador de Itinerário</h3>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">IA Geográfica</p>
-            </div>
-          </div>
-          <button 
-            onClick={handleOptimizeRoute} 
-            disabled={isOptimizing}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${isOptimizing ? 'bg-slate-700 text-slate-500' : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-900/40 active:scale-95'}`}
-          >
-            {isOptimizing ? <i className="fas fa-spinner fa-spin mr-2"></i> : <i className="fas fa-magic mr-2"></i>}
-            Otimizar Hoje
-          </button>
-        </div>
-
-        {optimizedRoute && (
-          <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700/50 animate-in fade-in slide-in-from-top-2">
-            <p className="text-xs text-emerald-400 italic mb-4 leading-relaxed">"{optimizedRoute.explanation}"</p>
-            <div className="space-y-3">
-              {optimizedRoute.order.map((jobId, idx) => {
-                const job = jobs.find(j => j.id === jobId);
-                if (!job) return null;
-                return (
-                  <div key={job.id} className="flex items-center gap-4 group">
-                    <div className="flex flex-col items-center">
-                      <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] font-black text-white shadow-sm">{idx + 1}</div>
-                      {idx < optimizedRoute.order.length - 1 && <div className="w-0.5 h-6 bg-slate-700"></div>}
-                    </div>
-                    <div className="flex-1 bg-slate-700/30 p-3 rounded-xl border border-slate-700 flex justify-between items-center hover:bg-slate-700/50 transition">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-slate-200">{job.clientName}</span>
-                        <span className="text-[9px] text-slate-400 uppercase font-bold tracking-widest">{job.startTime}</span>
-                      </div>
-                      <a 
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${job.location?.lat},${job.location?.lng}`} 
-                        target="_blank" 
-                        className="text-emerald-400 hover:text-emerald-300 p-2"
-                      >
-                        <i className="fas fa-external-link-alt text-sm"></i>
-                      </a>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <button onClick={() => setOptimizedRoute(null)} className="mt-4 text-[10px] text-slate-500 font-bold uppercase hover:text-slate-300">Limpar Rota</button>
-          </div>
-        )}
-      </div>
-
-      {/* BARRA DE FILTROS */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative group">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <i className="fas fa-search text-slate-400 group-focus-within:text-emerald-500 transition-colors"></i>
-            </div>
-            <input
-              type="text"
-              placeholder="Procurar por cliente..."
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-11 pr-4 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          
-          <div className="w-full md:w-48">
-            <select 
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:border-emerald-500 outline-none transition-all cursor-pointer"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-            >
-              <option value="all">📅 Todos os Estados</option>
-              <option value="scheduled">Agendados</option>
-              <option value="pending">Em Curso</option>
-              <option value="completed">Concluídos</option>
-            </select>
-          </div>
-
-          <div className="w-full md:w-48">
-            <select 
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:border-emerald-500 outline-none transition-all cursor-pointer"
-              value={serviceTypeFilter}
-              onChange={(e) => setServiceTypeFilter(e.target.value as any)}
-            >
-              <option value="all">🌿 Todos os Tipos</option>
-              <option value="regular">Manutenção Regular</option>
-              <option value="extra">Serviço Extra</option>
-            </select>
-          </div>
-
-          <div className="w-full md:w-48">
-            <select 
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:border-emerald-500 outline-none transition-all cursor-pointer"
-              value={paymentFilter}
-              onChange={(e) => setPaymentFilter(e.target.value as any)}
-            >
-              <option value="all">💰 Pagamentos (Todos)</option>
-              <option value="paid">Pagos</option>
-              <option value="unpaid">Em Dívida</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-8">
-        {['scheduled', 'pending', 'completed'].map(statusGroup => {
-          if (statusFilter !== 'all' && statusFilter !== statusGroup) return null;
-
-          const filtered = filteredJobs.filter(j => j.status === statusGroup);
-          if (filtered.length === 0) return null;
-
-          return (
-            <div key={statusGroup} className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center px-2">
-                {statusGroup === 'scheduled' ? 'Próximos' : statusGroup === 'pending' ? 'Em Curso' : 'Concluídos'}
-                <span className="ml-2 bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full text-[10px]">{filtered.length}</span>
-              </h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {filtered.map(job => (
-                  <div key={job.id} className={`bg-white p-5 rounded-2xl border ${job.paymentStatus === 'paid' ? 'border-emerald-100' : 'border-rose-50'} shadow-sm hover:shadow-md transition relative overflow-hidden group`}>
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-bold text-slate-800">{job.clientName}</h4>
-                          <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${job.serviceType === 'regular' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                            {job.serviceType === 'regular' ? 'MANUTENÇÃO' : 'EXTRA'}
-                          </span>
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-medium">
-                          <i className="far fa-folder mr-1"></i> {job.category || 'Sem Categoria'} | <i className="far fa-calendar mr-1"></i> {job.date} | <i className="far fa-clock mr-1"></i> {job.startTime}-{job.endTime}
-                        </div>
-                        {job.workerNames && job.workerNames.length > 0 && (
-                          <div className="text-[9px] text-emerald-600 font-black uppercase mt-2">
-                            <i className="fas fa-users mr-1"></i> {job.workerNames.join(', ')}
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-bold text-slate-800">{job.totalValue.toFixed(2)}€</div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {job.tasks.map(t => <span key={t} className="text-[9px] bg-slate-50 text-slate-500 px-2 py-1 rounded border border-slate-100">{t}</span>)}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                      <div className="flex gap-2">
-                        {job.status !== 'completed' && (
-                          <button onClick={() => onUpdateStatus(job.id, 'completed')} className="text-[10px] bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-emerald-700 shadow-sm transition">Concluir</button>
-                        )}
-                        <button onClick={() => onUpdatePayment(job.id, job.paymentStatus === 'paid' ? 'unpaid' : 'paid')} className={`text-[10px] px-3 py-1.5 rounded-lg font-bold border transition ${job.paymentStatus === 'paid' ? 'border-rose-200 text-rose-600 hover:bg-rose-50' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'}`}>
-                          {job.paymentStatus === 'paid' ? 'Dívida' : 'Pago'}
-                        </button>
-                        <a 
-                          href={generateGoogleCalendarLink(job)} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          onClick={() => onUpdateSync(job.id)}
-                          className={`text-[10px] px-3 py-1.5 rounded-lg font-bold transition ${job.syncedToCalendar ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'}`}
-                        >
-                          <i className="fab fa-google mr-1"></i> {job.syncedToCalendar ? 'Sincronizado' : 'Agenda'}
-                        </a>
-                      </div>
-                      <button onClick={() => onDeleteJob(job.id)} className="text-slate-300 hover:text-rose-500 transition-colors p-2"><i className="fas fa-trash-alt"></i></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-export default JobLog;
+      try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const prompt = `Analise os meus dados de jardinagem. Serviços: ${JSON.stringify(state.jobs)}. Custos: ${JSON.stringify(state.expenses)}. Dê conselhos curtos.`;
+        const res = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: prompt });
+        reportDiv.innerText = res.text;
+        reportDiv.classList.remove('hidden');
+      } catch (e) {
+        reportDiv.innerText = "Erro ao ligar à IA.";
+        reportDiv.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Analisar Performance (IA)';
+      }
+    };
+  </script>
+</body>
+</html>
