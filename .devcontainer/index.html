@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VerdeGest Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-white font-sans">
+
+    <div class="max-w-md mx-auto min-h-screen flex flex-col p-4">
+        <header class="flex justify-between items-center py-4">
+            <h1 class="text-2xl font-bold text-emerald-500">VerdeGest</h1>
+            <button onclick="abrirConfig()" class="text-slate-400"><i class="fas fa-cog text-xl"></i></button>
+        </header>
+
+        <div class="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-6 mb-6 shadow-xl">
+            <p class="text-emerald-100 text-sm">Bem-vindo ao teu dashboard,</p>
+            <h2 class="text-2xl font-bold mb-4">Gestor VerdeGest</h2>
+            <div class="flex gap-4 text-center">
+                <div class="bg-white/10 p-3 rounded-2xl flex-1">
+                    <p class="text-[10px] uppercase opacity-70">Trabalhos</p>
+                    <p id="totalJobs" class="text-xl font-bold">0</p>
+                </div>
+                <div class="bg-white/10 p-3 rounded-2xl flex-1">
+                    <p class="text-[10px] uppercase opacity-70">Estado Nuvem</p>
+                    <p id="cloudStatus" class="text-xs font-bold text-orange-300">OFFLINE</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-800 rounded-2xl p-4 mb-6 border border-slate-700">
+            <h3 class="text-sm font-bold mb-3">Registar Serviço</h3>
+            <input id="cliente" type="text" placeholder="Nome do Cliente" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 mb-2 text-sm">
+            <button onclick="salvarServico()" class="w-full bg-emerald-500 hover:bg-emerald-600 font-bold py-2 rounded-lg transition">Gravar</button>
+        </div>
+
+        <div id="listaServicos" class="flex-1 overflow-y-auto space-y-2">
+            </div>
+
+        <div id="modalConfig" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-6">
+            <div class="bg-slate-800 p-6 rounded-3xl w-full max-w-sm border border-slate-700">
+                <h2 class="text-xl font-bold mb-4">Configuração Nuvem</h2>
+                <p class="text-xs text-slate-400 mb-2">Cola o URL do Apps Script:</p>
+                <input id="urlScript" type="text" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 mb-4 text-xs">
+                <div class="flex gap-2">
+                    <button onclick="fecharConfig()" class="flex-1 bg-slate-700 py-2 rounded-lg">Fechar</button>
+                    <button onclick="guardarURL()" class="flex-1 bg-emerald-500 py-2 rounded-lg font-bold">Ligar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let db = JSON.parse(localStorage.getItem('verdegest_db')) || [];
+        let scriptURL = localStorage.getItem('verdegest_url') || "";
+
+        function render() {
+            const lista = document.getElementById('listaServicos');
+            lista.innerHTML = db.map((s, i) => `
+                <div class="bg-slate-800 p-3 rounded-xl border-l-4 border-emerald-500 flex justify-between">
+                    <span>${s.cliente}</span>
+                    <span class="text-xs opacity-50">${s.data}</span>
+                </div>
+            `).join('');
+            document.getElementById('totalJobs').innerText = db.length;
+            document.getElementById('cloudStatus').innerText = scriptURL ? "ONLINE" : "OFFLINE";
+            document.getElementById('cloudStatus').className = scriptURL ? "text-xs font-bold text-emerald-400" : "text-xs font-bold text-orange-300";
+        }
+
+        function salvarServico() {
+            const cliente = document.getElementById('cliente').value;
+            if(!cliente) return;
+            const novo = { cliente, data: new Date().toLocaleDateString() };
+            db.unshift(novo);
+            localStorage.setItem('verdegest_db', JSON.stringify(db));
+            document.getElementById('cliente').value = "";
+            render();
+            if(scriptURL) enviarParaNuvem(novo);
+        }
+
+        async function enviarParaNuvem(dados) {
+            try {
+                await fetch(scriptURL, { method: 'POST', body: JSON.stringify(dados) });
+            } catch(e) { console.log("Erro ao sincronizar"); }
+        }
+
+        function abrirConfig() { 
+            document.getElementById('modalConfig').classList.remove('hidden'); 
+            document.getElementById('urlScript').value = scriptURL;
+        }
+        function fecharConfig() { document.getElementById('modalConfig').classList.add('hidden'); }
+        function guardarURL() {
+            scriptURL = document.getElementById('urlScript').value;
+            localStorage.setItem('verdegest_url', scriptURL);
+            fecharConfig();
+            render();
+        }
+
+        render();
+    </script>
+</body>
+</html>
