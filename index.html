@@ -27,6 +27,9 @@
     .sidebar-active { background: #10b981; color: white !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }
     .nav-btn.active { color: #10b981; }
     .notification-badge { position: absolute; top: 0; right: 0; transform: translate(25%, -25%); }
+    
+    .chip { transition: all 0.2s; cursor: pointer; border: 1px solid #e2e8f0; border-radius: 12px; padding: 6px 12px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; background: white; }
+    .chip.active { background-color: #10b981; color: white; border-color: #10b981; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2); }
   </style>
 <script type="importmap">
 {
@@ -144,9 +147,7 @@
       <section id="view-notifications" class="view">
         <div class="space-y-6">
           <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Centro de Alertas</h2>
-          <div id="notifications-list" class="space-y-4 pb-12">
-            <!-- Alertas dinâmicos -->
-          </div>
+          <div id="notifications-list" class="space-y-4 pb-12"></div>
         </div>
       </section>
 
@@ -168,44 +169,65 @@
           <div id="job-form-box" class="hidden animate-in">
             <form id="form-job" class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 space-y-6">
               <datalist id="datalist-clients"></datalist>
-              <datalist id="datalist-categories"></datalist>
               
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Cliente -->
                 <div class="space-y-1">
                   <label class="text-[10px] font-black uppercase text-slate-400">Cliente</label>
-                  <input required id="j-client" list="datalist-clients" placeholder="Nome do Cliente" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                  <input required id="j-client" list="datalist-clients" placeholder="Ex: Condomínio Mar" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
                 </div>
-                <div class="space-y-1">
-                  <label class="text-[10px] font-black uppercase text-slate-400">Categoria</label>
-                  <input required id="j-category" list="datalist-categories" placeholder="Ex: Relva, Poda..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                
+                <!-- Horários -->
+                <div class="grid grid-cols-3 gap-2">
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-black uppercase text-slate-400">Data</label>
+                    <input type="date" id="j-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[10px]">
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-black uppercase text-slate-400">Início</label>
+                    <input type="time" id="j-start" value="08:30" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[10px]">
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-black uppercase text-slate-400">Fim</label>
+                    <input type="time" id="j-end" value="10:30" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[10px]">
+                  </div>
                 </div>
-                <div class="space-y-1">
-                  <label class="text-[10px] font-black uppercase text-slate-400">Colaboradores</label>
-                  <input id="j-workers" placeholder="João, Maria..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+
+                <!-- Categoria Checklist -->
+                <div class="space-y-2 md:col-span-2">
+                  <label class="text-[10px] font-black uppercase text-slate-400">Categoria (Escolha ou escreva nova)</label>
+                  <div id="category-checklist" class="flex flex-wrap gap-2"></div>
+                  <input id="j-category-custom" placeholder="+ Escrever outra..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs outline-none focus:ring-1 focus:ring-emerald-500 mt-2">
                 </div>
+
+                <!-- Colaboradores Checklist -->
+                <div class="space-y-2 md:col-span-2">
+                  <label class="text-[10px] font-black uppercase text-slate-400">Equipa (Escolha ou escreva novo)</label>
+                  <div id="workers-checklist" class="flex flex-wrap gap-2"></div>
+                  <input id="j-workers-custom" placeholder="+ Escrever outro..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs outline-none focus:ring-1 focus:ring-emerald-500 mt-2">
+                </div>
+
+                <!-- Tarifa -->
                 <div class="space-y-1">
                   <label class="text-[10px] font-black uppercase text-slate-400">Tarifa (€)</label>
                   <div class="flex gap-2">
                     <input type="number" step="0.5" id="j-price" value="30" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
                     <select id="j-price-type" class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs">
-                      <option value="fixed">Fixo</option>
                       <option value="hourly">/Hora</option>
+                      <option value="fixed">Fixo</option>
                     </select>
                   </div>
                 </div>
+                
                 <div class="space-y-1">
-                  <label class="text-[10px] font-black uppercase text-slate-400">Tipo</label>
+                  <label class="text-[10px] font-black uppercase text-slate-400">Tipo de Trabalho</label>
                   <select id="j-type" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
                     <option value="regular">Regular</option>
                     <option value="extra">Extra</option>
                   </select>
                 </div>
-                <div class="space-y-1">
-                  <label class="text-[10px] font-black uppercase text-slate-400">Data</label>
-                  <input type="date" id="j-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
-                </div>
               </div>
-              <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-black shadow-lg">Registar Serviço</button>
+              <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-black shadow-lg active:scale-95 transition-all">Registar e Sincronizar</button>
             </form>
           </div>
 
@@ -269,9 +291,10 @@
               <i class="fas fa-cloud-arrow-up text-emerald-500"></i> Google Sheets Link
             </h2>
             <div class="space-y-4">
-              <input id="s-url" type="text" placeholder="URL do Apps Script (https://script.google.com/...)" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-5 text-xs font-mono outline-none focus:ring-2 focus:ring-emerald-500">
+              <p class="text-[10px] text-slate-500 font-bold uppercase">URL do seu Apps Script:</p>
+              <input id="s-url" type="text" placeholder="https://script.google.com/..." class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-5 text-xs font-mono outline-none focus:ring-2 focus:ring-emerald-500">
               <button onclick="saveSettings()" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-emerald-600/20 active:scale-95 transition-all">
-                Salvar e Sincronizar
+                Ligar e Sincronizar Tudo
               </button>
             </div>
           </div>
@@ -314,15 +337,20 @@
   <script type="module">
     import { GoogleGenAI } from "@google/genai";
 
-    // --- ESTADO ---
+    // --- ESTADO INICIAL (Lê localStorage primeiro) ---
     let state = {
       jobs: JSON.parse(localStorage.getItem('vg_jobs')) || [],
       expenses: JSON.parse(localStorage.getItem('vg_exp')) || [],
       settings: JSON.parse(localStorage.getItem('vg_set')) || { 
         googleScriptUrl: '',
-        categories: ['Relva', 'Poda', 'Rega', 'Limpeza']
+        categories: ['Relva', 'Poda', 'Rega', 'Limpeza', 'Tratamento', 'Plantação'],
+        workers: ['Eu']
       },
-      timer: { active: false, start: null }
+      timer: { active: false, start: null },
+      selection: {
+        category: null,
+        workers: []
+      }
     };
 
     let chart = null;
@@ -332,6 +360,7 @@
       renderAll();
       initChart();
       updateDatalists();
+      renderChecklists();
       
       const dateInput = document.getElementById('j-date');
       if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
@@ -341,37 +370,64 @@
 
       const urlInput = document.getElementById('s-url');
       if (urlInput) urlInput.value = state.settings.googleScriptUrl || '';
-      
+
       if (state.settings.googleScriptUrl) {
         await autoFetchFromCloud();
       }
     });
 
+    // --- CHECKLIST ENGINE ---
+    function renderChecklists() {
+      const catContainer = document.getElementById('category-checklist');
+      const workContainer = document.getElementById('workers-checklist');
+      if (!catContainer || !workContainer) return;
+
+      catContainer.innerHTML = state.settings.categories.map(cat => `
+        <div onclick="selectCategory('${cat}')" class="chip ${state.selection.category === cat ? 'active' : ''}">
+          ${cat}
+        </div>
+      `).join('');
+
+      workContainer.innerHTML = state.settings.workers.map(w => `
+        <div onclick="toggleWorker('${w}')" class="chip ${state.selection.workers.includes(w) ? 'active' : ''}">
+          <i class="fas ${state.selection.workers.includes(w) ? 'fa-check-circle' : 'fa-user'} mr-1"></i> ${w}
+        </div>
+      `).join('');
+    }
+
+    window.selectCategory = (cat) => {
+      state.selection.category = cat;
+      renderChecklists();
+    };
+
+    window.toggleWorker = (worker) => {
+      const idx = state.selection.workers.indexOf(worker);
+      if (idx > -1) state.selection.workers.splice(idx, 1);
+      else state.selection.workers.push(worker);
+      renderChecklists();
+    };
+
+    // --- CLOUD ENGINE ---
     async function autoFetchFromCloud() {
       if (!state.settings.googleScriptUrl) return;
-      updateSyncStatus('A ler Cloud...');
+      updateSyncStatus('Sincronizando...');
       try {
         const response = await fetch(state.settings.googleScriptUrl);
         const cloudData = await response.json();
-        if (cloudData && (cloudData.jobs || cloudData.expenses)) {
+        if (cloudData) {
           state.jobs = cloudData.jobs || state.jobs;
           state.expenses = cloudData.expenses || state.expenses;
-          saveLocal(false);
+          if (cloudData.settings) {
+            state.settings.categories = Array.from(new Set([...state.settings.categories, ...(cloudData.settings.categories || [])]));
+            state.settings.workers = Array.from(new Set([...state.settings.workers, ...(cloudData.settings.workers || [])]));
+          }
+          saveLocal(false); // Salva local sem entrar em loop de upload
           renderAll();
           updateSyncStatus('Cloud OK');
         }
       } catch (e) {
-        updateSyncStatus('Erro Cloud (Offline)');
+        updateSyncStatus('Offline (Local OK)');
       }
-    }
-
-    function updateDatalists() {
-      const clients = Array.from(new Set(state.jobs.map(j => j.clientName))).sort();
-      const dlClients = document.getElementById('datalist-clients');
-      if (dlClients) dlClients.innerHTML = clients.map(c => `<option value="${c}">`).join('');
-
-      const dlCats = document.getElementById('datalist-categories');
-      if (dlCats) dlCats.innerHTML = state.settings.categories.map(c => `<option value="${c}">`).join('');
     }
 
     function saveLocal(sync = true) {
@@ -380,12 +436,13 @@
       localStorage.setItem('vg_set', JSON.stringify(state.settings));
       renderAll();
       updateDatalists();
+      renderChecklists();
       if (sync) manualSync();
     }
 
     window.manualSync = async () => {
       if (!state.settings.googleScriptUrl) return;
-      updateSyncStatus('A enviar...');
+      updateSyncStatus('Enviando...');
       try {
         await fetch(state.settings.googleScriptUrl, {
           method: 'POST',
@@ -394,7 +451,7 @@
         });
         updateSyncStatus('Sincronizado');
       } catch (e) {
-        updateSyncStatus('Erro Sync');
+        updateSyncStatus('Erro Sinc.');
       }
     };
 
@@ -406,7 +463,7 @@
       if (badge) badge.innerText = text;
       if (!dot) return;
       if (text.includes('Erro')) dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
-      else if (text.includes('ler') || text.includes('enviar')) dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse";
+      else if (text.includes('...')) dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse";
       else dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
     }
 
@@ -414,42 +471,12 @@
     function calculateNotifications() {
       const today = new Date().toISOString().split('T')[0];
       const alerts = [];
-
-      // Serviços Agendados para Hoje
       const jobsToday = state.jobs.filter(j => j.date === today && j.status === 'scheduled');
-      jobsToday.forEach(j => alerts.push({
-        id: 'job-'+j.id,
-        type: 'job',
-        title: 'Serviço Hoje',
-        desc: `Manutenção para ${j.clientName} marcada para hoje.`,
-        urgency: 'high'
-      }));
-
-      // Contas Pendentes (Concluídos e Não Pagos)
+      jobsToday.forEach(j => alerts.push({ id: 'job-'+j.id, type: 'job', title: 'Serviço Hoje', desc: `${j.clientName} (${j.startTime || '?'})`, urgency: 'high' }));
       const debts = state.jobs.filter(j => j.status === 'completed' && j.paymentStatus === 'unpaid');
-      debts.forEach(j => {
-        const jobDate = new Date(j.date);
-        const now = new Date();
-        const diffDays = Math.floor((now - jobDate) / (1000 * 60 * 60 * 24));
-        alerts.push({
-          id: 'pay-'+j.id,
-          type: 'payment',
-          title: 'Pagamento em Falta',
-          desc: `${j.clientName} deve ${Number(j.totalValue).toFixed(2)}€ (Serviço de há ${diffDays} dias).`,
-          urgency: diffDays > 3 ? 'high' : 'medium'
-        });
-      });
-
-      // Despesas Não Liquidadas
+      debts.forEach(j => alerts.push({ id: 'pay-'+j.id, type: 'payment', title: 'A Receber', desc: `${j.clientName} (${Number(j.totalValue).toFixed(2)}€)`, urgency: 'high' }));
       const unpaidExp = state.expenses.filter(e => !e.paymentStatus || e.paymentStatus === 'unpaid');
-      unpaidExp.forEach(e => alerts.push({
-        id: 'exp-'+e.id,
-        type: 'expense',
-        title: 'Despesa Pendente',
-        desc: `Gasto "${e.description}" de ${Number(e.amount).toFixed(2)}€ ainda por liquidar.`,
-        urgency: 'medium'
-      }));
-
+      unpaidExp.forEach(e => alerts.push({ id: 'exp-'+e.id, type: 'expense', title: 'Gasto Pendente', desc: `${e.description}`, urgency: 'medium' }));
       return alerts;
     }
 
@@ -459,65 +486,38 @@
       const mobileBadge = document.getElementById('badge-mobile');
       const alertBar = document.getElementById('urgent-alert-bar');
       const alertText = document.getElementById('urgent-alert-text');
-
       if (!list) return;
       const alerts = calculateNotifications();
-
-      // Update Badges
       if (alerts.length > 0) {
-        sideBadge.innerText = alerts.length;
-        sideBadge.classList.remove('hidden');
-        mobileBadge.innerText = alerts.length;
-        mobileBadge.classList.remove('hidden');
-        
-        if (alertBar) {
-          alertBar.classList.remove('hidden');
-          alertText.innerText = `${alerts.length} Alertas Urgentes`;
-        }
+        sideBadge.innerText = alerts.length; sideBadge.classList.remove('hidden');
+        mobileBadge.innerText = alerts.length; mobileBadge.classList.remove('hidden');
+        if (alertBar) { alertBar.classList.remove('hidden'); alertText.innerText = `${alerts.length} Alertas Ativos`; }
       } else {
-        sideBadge.classList.add('hidden');
-        mobileBadge.classList.add('hidden');
+        sideBadge.classList.add('hidden'); mobileBadge.classList.add('hidden');
         if (alertBar) alertBar.classList.add('hidden');
       }
-
       list.innerHTML = '';
       if (alerts.length === 0) {
-        list.innerHTML = `<div class="text-center py-20 bg-white rounded-[2rem] border border-dashed border-slate-200 text-slate-400 font-bold uppercase text-[10px]">Tudo em Dia</div>`;
+        list.innerHTML = `<div class="text-center py-10 text-slate-400 font-bold uppercase text-[9px]">Tudo em dia</div>`;
         return;
       }
-
       alerts.forEach(a => {
         const div = document.createElement('div');
-        const borderColor = a.urgency === 'high' ? 'border-rose-500' : 'border-amber-400';
-        const iconColor = a.type === 'job' ? 'text-emerald-500' : a.type === 'payment' ? 'text-rose-500' : 'text-amber-500';
-        const icon = a.type === 'job' ? 'fa-leaf' : a.type === 'payment' ? 'fa-hand-holding-dollar' : 'fa-gas-pump';
-
-        div.className = `bg-white p-6 rounded-2xl border-l-4 ${borderColor} card-shadow flex gap-4 items-center`;
-        div.innerHTML = `
-          <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center ${iconColor}">
-            <i class="fas ${icon} text-lg"></i>
-          </div>
-          <div class="flex-1">
-            <h4 class="font-black text-slate-800 text-sm uppercase tracking-tight">${a.title}</h4>
-            <p class="text-[10px] text-slate-500 font-medium leading-relaxed">${a.desc}</p>
-          </div>
-          <button onclick="switchView('${a.type === 'expense' ? 'finance' : 'jobs'}')" class="text-slate-300 hover:text-slate-600">
-            <i class="fas fa-chevron-right text-xs"></i>
-          </button>
-        `;
+        div.className = "bg-white p-4 rounded-xl border-l-4 " + (a.urgency === 'high' ? 'border-rose-500' : 'border-amber-400') + " card-shadow flex justify-between items-center mb-2";
+        div.innerHTML = `<div><h4 class="font-black text-slate-800 text-[10px] uppercase">${a.title}</h4><p class="text-[9px] text-slate-500 font-medium">${a.desc}</p></div>`;
         list.appendChild(div);
       });
     }
 
     // --- UI ENGINE ---
     window.switchView = (viewName) => {
-      const targetView = document.getElementById('view-' + viewName);
-      if (!targetView) return;
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      targetView.classList.add('active');
+      const target = document.getElementById('view-' + viewName);
+      if (target) target.classList.add('active');
+      
       document.querySelectorAll('.sidebar-btn, .nav-btn').forEach(b => b.classList.remove('active', 'sidebar-active'));
       const activeBtn = document.getElementById('side-' + viewName) || document.getElementById('mbtn-' + viewName);
-      if (activeBtn) activeBtn.classList.add(activeBtn.classList.contains('sidebar-btn') ? 'sidebar-active' : 'active');
+      if (activeBtn) activeBtn.classList.add(activeBtn.id.startsWith('side') ? 'sidebar-active' : 'active');
     };
 
     window.toggleElement = (id) => {
@@ -525,28 +525,32 @@
       if (el) el.classList.toggle('hidden');
     };
 
+    function updateDatalists() {
+      const clients = Array.from(new Set(state.jobs.map(j => j.clientName))).sort();
+      const dlClients = document.getElementById('datalist-clients');
+      if (dlClients) dlClients.innerHTML = clients.map(c => `<option value="${c}">`).join('');
+    }
+
     function renderAll() {
       renderDashboard();
       renderJobs();
       renderExpenses();
       renderNotifications();
+      renderChecklists();
     }
 
     function renderDashboard() {
-      const balanceEl = document.getElementById('dash-balance');
-      const incomeEl = document.getElementById('dash-income');
-      const costEl = document.getElementById('dash-cost');
-      const pendingEl = document.getElementById('dash-jobs-pending');
-      const debtsEl = document.getElementById('dash-debts');
-      if (!balanceEl || !incomeEl || !costEl) return;
       const completed = state.jobs.filter(j => j.status === 'completed');
       const income = completed.reduce((s, j) => s + (Number(j.totalValue) || 0), 0);
       const cost = state.expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
-      balanceEl.innerText = (income - cost).toFixed(2) + '€';
-      incomeEl.innerText = income.toFixed(2) + '€';
-      costEl.innerText = cost.toFixed(2) + '€';
-      if (pendingEl) pendingEl.innerText = state.jobs.filter(j => j.status !== 'completed').length;
-      if (debtsEl) debtsEl.innerText = state.jobs.filter(j => j.status === 'completed' && j.paymentStatus === 'unpaid').length;
+      
+      const balanceEl = document.getElementById('dash-balance');
+      if (balanceEl) balanceEl.innerText = (income - cost).toFixed(2) + '€';
+      document.getElementById('dash-income').innerText = income.toFixed(2) + '€';
+      document.getElementById('dash-cost').innerText = cost.toFixed(2) + '€';
+      document.getElementById('dash-jobs-pending').innerText = state.jobs.filter(j => j.status !== 'completed').length;
+      document.getElementById('dash-debts').innerText = state.jobs.filter(j => j.status === 'completed' && j.paymentStatus === 'unpaid').length;
+      
       if(chart) { chart.data.datasets[0].data = [income, cost]; chart.update(); }
     }
 
@@ -555,17 +559,22 @@
       if (!list) return;
       list.innerHTML = '';
       if (state.jobs.length === 0) {
-        list.innerHTML = `<div class="text-center py-20 text-slate-400 font-bold uppercase text-[10px] bg-white rounded-[2rem] border border-dashed border-slate-200">Sem Agenda</div>`;
+        list.innerHTML = `<div class="text-center py-20 text-slate-400 font-bold uppercase text-[10px] bg-white rounded-[2rem] border border-dashed border-slate-200">Sem serviços registados</div>`;
         return;
       }
       state.jobs.sort((a,b) => b.date.localeCompare(a.date)).forEach(j => {
         const div = document.createElement('div');
         div.className = "bg-white p-6 rounded-[2rem] border border-slate-100 card-shadow flex justify-between items-center";
         div.innerHTML = `
-          <div>
-            <h4 class="font-black text-slate-800">${j.clientName} <span class="text-[8px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded ml-2 uppercase">${j.serviceType || 'REGULAR'}</span></h4>
-            <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">${j.date} • ${j.category}</p>
-            ${j.workers ? `<p class="text-[9px] font-black text-emerald-600 uppercase mt-1"><i class="fas fa-users mr-1"></i> ${j.workers}</p>` : ''}
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-2xl ${j.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'} flex items-center justify-center">
+              <i class="fas ${j.status === 'completed' ? 'fa-check-double' : 'fa-calendar-day'}"></i>
+            </div>
+            <div>
+              <h4 class="font-black text-slate-800 text-sm uppercase">${j.clientName}</h4>
+              <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">${j.date} | ${j.startTime || '?'}-${j.endTime || '?'}</p>
+              <p class="text-[8px] font-black text-emerald-600 uppercase mt-1">${j.category} | <i class="fas fa-users"></i> ${j.workers}</p>
+            </div>
           </div>
           <div class="text-right">
             <p class="font-black text-slate-900">${Number(j.totalValue).toFixed(2)}€</p>
@@ -584,39 +593,65 @@
       tbody.innerHTML = '';
       state.expenses.sort((a,b) => b.date.localeCompare(a.date)).forEach(e => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="px-6 py-4 text-xs font-bold text-slate-500">${e.date}</td>
-          <td class="px-6 py-4 text-xs font-black uppercase text-slate-800">${e.description}</td>
-          <td class="px-6 py-4 text-sm font-black text-rose-500 text-right">-${Number(e.amount).toFixed(2)}€</td>
-        `;
+        tr.innerHTML = `<td class="px-6 py-4 text-[10px] font-bold text-slate-500">${e.date}</td><td class="px-6 py-4 text-[10px] font-black uppercase text-slate-800">${e.description}</td><td class="px-6 py-4 text-xs font-black text-rose-500 text-right">-${Number(e.amount).toFixed(2)}€</td>`;
         tbody.appendChild(tr);
       });
     }
 
-    // --- ACTIONS ---
+    // --- FORMULÁRIOS ---
     const jobForm = document.getElementById('form-job');
     if (jobForm) {
       jobForm.onsubmit = (e) => {
         e.preventDefault();
-        const cat = document.getElementById('j-category').value;
-        if (cat && !state.settings.categories.includes(cat)) {
-          state.settings.categories.push(cat);
+        
+        let finalCat = state.selection.category;
+        const customCat = document.getElementById('j-category-custom').value;
+        if (customCat) {
+          finalCat = customCat;
+          if (!state.settings.categories.includes(customCat)) state.settings.categories.push(customCat);
         }
-        const job = {
+        
+        let finalWorkers = [...state.selection.workers];
+        const customWorker = document.getElementById('j-workers-custom').value;
+        if (customWorker) {
+          finalWorkers.push(customWorker);
+          if (!state.settings.workers.includes(customWorker)) state.settings.workers.push(customWorker);
+        }
+
+        if (!finalCat) { alert('Selecione uma categoria'); return; }
+
+        const startTime = document.getElementById('j-start').value;
+        const endTime = document.getElementById('j-end').value;
+        const rate = Number(document.getElementById('j-price').value);
+        const pricingType = document.getElementById('j-price-type').value;
+        
+        let totalValue = rate;
+        if (pricingType === 'hourly') {
+          const start = new Date(`1970-01-01T${startTime}`);
+          const end = new Date(`1970-01-01T${endTime}`);
+          const diffHrs = Math.max(0, (end - start) / (1000 * 60 * 60));
+          totalValue = diffHrs * rate;
+        }
+
+        state.jobs.push({
           id: Date.now().toString(),
           clientName: document.getElementById('j-client').value,
-          category: cat,
-          workers: document.getElementById('j-workers').value,
-          totalValue: Number(document.getElementById('j-price').value),
+          category: finalCat,
+          workers: finalWorkers.join(', ') || 'Eu',
+          startTime, endTime, totalValue,
           serviceType: document.getElementById('j-type').value,
           date: document.getElementById('j-date').value,
           status: 'scheduled',
           paymentStatus: 'unpaid'
-        };
-        state.jobs.push(job);
+        });
+        
+        state.selection.category = null;
+        state.selection.workers = [];
         saveLocal();
         toggleElement('job-form-box');
         jobForm.reset();
+        document.getElementById('j-category-custom').value = '';
+        document.getElementById('j-workers-custom').value = '';
       };
     }
 
@@ -624,14 +659,13 @@
     if (expForm) {
       expForm.onsubmit = (e) => {
         e.preventDefault();
-        const exp = {
+        state.expenses.push({
           id: Date.now().toString(),
           description: document.getElementById('e-desc').value,
           amount: Number(document.getElementById('e-amount').value),
           date: document.getElementById('e-date').value,
           paymentStatus: 'unpaid'
-        };
-        state.expenses.push(exp);
+        });
         saveLocal();
         toggleElement('exp-form-box');
         expForm.reset();
@@ -644,35 +678,22 @@
     };
 
     window.deleteJob = (id) => {
-      if(confirm('Apagar serviço permanentemente?')) { 
-        state.jobs = state.jobs.filter(j => j.id !== id); 
-        saveLocal(); 
-      }
+      if(confirm('Eliminar este registo?')) { state.jobs = state.jobs.filter(j => j.id !== id); saveLocal(); }
     };
 
     window.saveSettings = () => {
-      const url = document.getElementById('s-url').value;
-      state.settings.googleScriptUrl = url;
-      localStorage.setItem('vg_set', JSON.stringify(state.settings));
-      manualSync();
-      alert('Definições Cloud guardadas!');
+      state.settings.googleScriptUrl = document.getElementById('s-url').value;
+      saveLocal();
+      alert('Ligação Cloud guardada!');
     };
 
     function initChart() {
       const canvas = document.getElementById('dashChart');
       if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      chart = new Chart(ctx, {
+      chart = new Chart(canvas.getContext('2d'), {
         type: 'bar',
-        data: { 
-          labels: ['Receitas', 'Gastos'], 
-          datasets: [{ data: [0, 0], backgroundColor: ['#10b981', '#f43f5e'], borderRadius: 10 }] 
-        },
-        options: { 
-          responsive: true, maintainAspectRatio: false, 
-          plugins: { legend: { display: false } }, 
-          scales: { y: { display: false }, x: { grid: { display: false } } } 
-        }
+        data: { labels: ['Receitas', 'Gastos'], datasets: [{ data: [0, 0], backgroundColor: ['#10b981', '#f43f5e'], borderRadius: 10 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false } } } }
       });
     }
 
@@ -680,16 +701,13 @@
       const btn = document.getElementById('timer-label');
       if (!btn) return;
       if (!state.timer.active) {
-        state.timer.active = true;
-        state.timer.start = Date.now();
-        btn.innerText = 'Parar';
-        btn.parentElement.classList.replace('bg-rose-500', 'bg-slate-900');
+        state.timer.active = true; state.timer.start = Date.now();
+        btn.innerText = 'Parar'; btn.parentElement.classList.replace('bg-rose-500', 'bg-slate-900');
+        document.getElementById('j-start').value = new Date().toTimeString().slice(0, 5);
+        if (document.getElementById('job-form-box').classList.contains('hidden')) toggleElement('job-form-box');
       } else {
-        const elapsed = (Date.now() - state.timer.start) / (1000 * 60 * 60);
-        alert(`Serviço cronometrado: ${elapsed.toFixed(2)} horas.`);
-        state.timer.active = false;
-        btn.innerText = 'Timer';
-        btn.parentElement.classList.replace('bg-slate-900', 'bg-rose-500');
+        document.getElementById('j-end').value = new Date().toTimeString().slice(0, 5);
+        state.timer.active = false; btn.innerText = 'Timer'; btn.parentElement.classList.replace('bg-slate-900', 'bg-rose-500');
       }
     };
 
@@ -697,21 +715,17 @@
       const btn = document.getElementById('btn-insights');
       const reportDiv = document.getElementById('ai-report');
       if (!btn || !reportDiv) return;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>A Analisar...';
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Analisando...';
       try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const prompt = `Analise os meus dados de jardinagem. Serviços: ${JSON.stringify(state.jobs)}. Custos: ${JSON.stringify(state.expenses)}. Forneça 3 conselhos estratégicos curtos em Português de Portugal.`;
-        const res = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
-        reportDiv.innerText = res.text;
-        reportDiv.classList.remove('hidden');
+        const res = await ai.models.generateContent({ 
+          model: 'gemini-3-flash-preview', 
+          contents: `Analise estes dados de jardinagem. Dê 3 dicas estratégicas. Dados: ${JSON.stringify({jobs: state.jobs, expenses: state.expenses})}` 
+        });
+        reportDiv.innerText = res.text; reportDiv.classList.remove('hidden');
       } catch (e) {
-        reportDiv.innerText = "Erro ao ligar ao motor de IA. Verifique a ligação.";
-        reportDiv.classList.remove('hidden');
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = 'Analisar Performance (IA)';
-      }
+        reportDiv.innerText = "Erro ao conectar com a IA."; reportDiv.classList.remove('hidden');
+      } finally { btn.disabled = false; btn.innerHTML = 'Analisar Performance (IA)'; }
     };
   </script>
 </body>
