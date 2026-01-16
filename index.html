@@ -3,37 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
-  <title>VerdeGest Pro - Gestão de Jardins</title>
+  <title>VerdeGest Pro - Gestão Profissional de Jardins</title>
   
-  <!-- Meta & PWA -->
   <meta name="theme-color" content="#065f46">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
   
-  <!-- CDNs -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
+
   <style>
     :root { --safe-area-inset-bottom: env(safe-area-inset-bottom); }
-    body { 
-      font-family: 'Inter', sans-serif; 
-      background-color: #f8fafc; 
-      overscroll-behavior-y: contain; 
-      color: #1e293b;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .safe-area-bottom { padding-bottom: calc(0.5rem + var(--safe-area-inset-bottom)); }
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; -webkit-tap-highlight-color: transparent; }
     .view { display: none; }
-    .view.active { display: block; animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .view.active { display: block; animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
     .card-shadow { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.02); }
+    .nav-btn.active { color: #10b981; }
+    .btn-press:active { transform: scale(0.96); }
     input, select, textarea { font-size: 16px !important; }
-    .nav-btn.active { background-color: #10b981; color: white; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
-    .mobile-nav-btn.active { color: #10b981; transform: scale(1.1); font-weight: 900; }
+    .safe-area-bottom { padding-bottom: calc(0.5rem + var(--safe-area-inset-bottom)); }
+    .sidebar-active { background: #10b981; color: white !important; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }
   </style>
 <script type="importmap">
 {
@@ -46,54 +40,62 @@
 }
 </script>
 </head>
-<body class="selection:bg-emerald-100 selection:text-emerald-900">
+<body class="selection:bg-emerald-100">
 
   <div class="min-h-screen flex flex-col md:flex-row pb-24 md:pb-0">
     <!-- Sidebar Desktop -->
-    <aside class="hidden md:flex w-72 bg-slate-900 text-white p-10 flex-col shrink-0 shadow-2xl">
-      <div class="flex items-center gap-4 mb-16">
-        <div class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white text-xl">
-          <i class="fas fa-leaf"></i>
+    <aside class="hidden md:flex w-72 bg-slate-900 text-white p-10 flex-col shrink-0 shadow-2xl z-20">
+      <div class="flex items-center gap-4 mb-12">
+        <div class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <i class="fas fa-leaf text-white text-xl"></i>
         </div>
         <h1 class="text-2xl font-black tracking-tighter uppercase">VerdeGest</h1>
       </div>
-      <nav class="flex-1 space-y-3">
-        <button onclick="switchView('dashboard')" class="nav-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all text-slate-500 hover:text-white hover:bg-white/5 active" id="btn-dashboard">
-          <i class="fas fa-chart-pie mr-4 w-5"></i> Início
+      <nav class="flex-1 space-y-2">
+        <button onclick="switchView('dashboard')" id="side-dashboard" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all sidebar-active">
+          <i class="fas fa-chart-pie mr-4 w-5"></i> Resumo
         </button>
-        <button onclick="switchView('jobs')" class="nav-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all text-slate-500 hover:text-white hover:bg-white/5" id="btn-jobs">
+        <button onclick="switchView('jobs')" id="side-jobs" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all">
           <i class="fas fa-calendar-alt mr-4 w-5"></i> Agenda
         </button>
-        <button onclick="switchView('finance')" class="nav-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all text-slate-500 hover:text-white hover:bg-white/5" id="btn-finance">
-          <i class="fas fa-wallet mr-4 w-5"></i> Gastos
+        <button onclick="switchView('finance')" id="side-finance" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all">
+          <i class="fas fa-wallet mr-4 w-5"></i> Custos
         </button>
-        <button onclick="switchView('settings')" class="nav-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all text-slate-500 hover:text-white hover:bg-white/5" id="btn-settings">
-          <i class="fas fa-cloud mr-4 w-5"></i> Nuvem
+        <button onclick="switchView('ai')" id="side-ai" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all">
+          <i class="fas fa-robot mr-4 w-5"></i> IA Pro
+        </button>
+        <button onclick="switchView('settings')" id="side-settings" class="sidebar-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:text-white transition-all">
+          <i class="fas fa-cloud mr-4 w-5"></i> Cloud
         </button>
       </nav>
-      <div class="mt-auto flex items-center gap-3 px-2">
-        <div id="sync-indicator" class="w-2 h-2 rounded-full bg-emerald-500"></div>
-        <span id="sync-text" class="text-[9px] font-black uppercase text-slate-500 tracking-widest">Local</span>
+      <div class="mt-auto pt-6 border-t border-slate-800">
+        <div class="flex items-center gap-3">
+          <div id="sync-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+          <span id="sync-label" class="text-[9px] font-black uppercase text-slate-500 tracking-widest">Local</span>
+        </div>
       </div>
     </aside>
 
     <!-- Main Content -->
     <main class="flex-1 p-5 md:p-14 max-w-6xl mx-auto w-full overflow-y-auto">
+      
       <!-- Mobile Header -->
-      <header class="mb-10 flex justify-between items-center md:hidden">
-        <div class="flex items-center gap-2">
-           <i class="fas fa-leaf text-emerald-600 text-xl"></i>
-           <h1 class="text-xl font-black tracking-tighter text-slate-900 uppercase">VerdeGest</h1>
+      <header class="mb-8 flex justify-between items-center md:hidden">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-600/20">
+            <i class="fas fa-leaf text-white text-sm"></i>
+          </div>
+          <h1 class="text-xl font-black tracking-tighter text-slate-900 uppercase">VerdeGest</h1>
         </div>
-        <div id="mobile-sync-badge" class="px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700">OK</div>
+        <div id="mobile-badge" class="px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700">Online</div>
       </header>
 
-      <!-- View: Dashboard -->
+      <!-- VIEW: DASHBOARD -->
       <section id="view-dashboard" class="view active">
         <div class="space-y-6">
-          <div class="bg-gradient-to-br from-emerald-600 to-emerald-800 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
+          <div class="bg-gradient-to-br from-emerald-600 to-teal-800 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
             <div class="relative z-10">
-              <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Saldo Líquido</p>
+              <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Balanço Líquido (Mês)</p>
               <h2 id="dash-balance" class="text-5xl font-black mt-2 tracking-tighter">0.00€</h2>
               <div class="flex gap-4 mt-8">
                 <div class="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/5 flex-1">
@@ -101,33 +103,33 @@
                   <p id="dash-income" class="text-lg font-black">0.00€</p>
                 </div>
                 <div class="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/5 flex-1">
-                  <p class="text-[9px] font-black opacity-60 uppercase">Gastos</p>
-                  <p id="dash-cost" class="text-lg font-black text-rose-200">0.00€</p>
+                  <p id="dash-cost-label" class="text-[9px] font-black opacity-60 uppercase">Gastos</p>
+                  <p id="dash-cost" class="text-lg font-black text-emerald-200">0.00€</p>
                 </div>
               </div>
             </div>
-            <i class="fas fa-leaf absolute -right-10 -bottom-10 text-[12rem] opacity-5 rotate-12"></i>
+            <i class="fas fa-seedling absolute -right-10 -bottom-10 text-[14rem] opacity-5 rotate-12"></i>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white p-6 rounded-[2rem] border border-slate-100 card-shadow">
               <h3 class="text-[10px] font-black uppercase text-slate-400 mb-6 flex items-center gap-2">
-                <i class="fas fa-chart-bar"></i> Performance
+                <i class="fas fa-chart-line"></i> Evolução Mensal
               </h3>
               <div class="h-64 relative">
-                <canvas id="mainChart"></canvas>
+                <canvas id="dashChart"></canvas>
               </div>
             </div>
             <div class="bg-slate-900 p-8 rounded-[2rem] text-white shadow-xl flex flex-col justify-center">
-              <h3 class="text-[10px] font-black uppercase text-emerald-500 mb-6 tracking-widest">Estado de Hoje</h3>
+              <h3 class="text-[10px] font-black uppercase text-emerald-400 mb-6 tracking-widest">Estado das Operações</h3>
               <div class="space-y-4">
                 <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
-                  <span class="text-xs font-bold text-slate-400">Trabalhos Agendados</span>
-                  <span id="dash-jobs-count" class="text-xl font-black">0</span>
+                  <span class="text-xs font-bold text-slate-400">Serviços Pendentes</span>
+                  <span id="dash-jobs-pending" class="text-xl font-black">0</span>
                 </div>
                 <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
-                  <span class="text-xs font-bold text-slate-400">Dívidas Pendentes</span>
-                  <span id="dash-debt-count" class="text-xl font-black text-rose-400">0</span>
+                  <span class="text-xs font-bold text-slate-400">Pagamentos em Falta</span>
+                  <span id="dash-debts" class="text-xl font-black text-rose-400">0</span>
                 </div>
               </div>
             </div>
@@ -135,203 +137,280 @@
         </div>
       </section>
 
-      <!-- View: Jobs -->
+      <!-- VIEW: JOBS -->
       <section id="view-jobs" class="view">
         <div class="space-y-6">
           <div class="flex justify-between items-center">
-            <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Folha de Tempos</h2>
-            <button onclick="toggleForm('job-form')" class="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-emerald-600/20 active:scale-95 transition-all">
-              + Novo Serviço
-            </button>
+            <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Agenda & Timesheet</h2>
+            <div class="flex gap-2">
+               <button id="btn-timer" onclick="toggleTimer()" class="bg-rose-500 text-white px-4 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-rose-500/20 active:scale-95 transition-all">
+                  <i class="fas fa-play mr-2"></i> <span id="timer-label">Timer</span>
+               </button>
+               <button onclick="toggleElement('job-form-box')" class="bg-emerald-600 text-white px-5 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-emerald-600/20 active:scale-95 transition-all">
+                  + Novo
+               </button>
+            </div>
           </div>
 
-          <!-- Form: Job -->
-          <div id="job-form" class="hidden animate-in">
-            <form id="form-add-job" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 space-y-6">
+          <!-- Cronómetro Banner -->
+          <div id="timer-banner" class="hidden bg-slate-900 p-4 rounded-2xl flex items-center justify-between text-white animate-in">
+             <div class="flex items-center gap-3">
+                <div class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>
+                <span class="text-xs font-black uppercase tracking-widest text-slate-400">A trabalhar:</span>
+                <span id="timer-display" class="font-mono text-xl font-black">00:00:00</span>
+             </div>
+             <button onclick="stopTimerAndFill()" class="text-[10px] font-black uppercase bg-white text-slate-900 px-3 py-1.5 rounded-lg">Registar Tempo</button>
+          </div>
+
+          <!-- Form: Adicionar Job -->
+          <div id="job-form-box" class="hidden animate-in">
+            <form id="form-job" class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 space-y-6">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-1">
-                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Cliente</label>
-                  <input required id="in-client" placeholder="Ex: Sr. Manuel" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition">
+                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Cliente / Local</label>
+                  <div class="flex gap-2">
+                    <input required id="j-client" placeholder="Ex: Vivenda Silva" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                    <button type="button" onclick="captureLocation()" id="btn-geo" class="px-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-400">
+                      <i class="fas fa-location-dot"></i>
+                    </button>
+                  </div>
                 </div>
                 <div class="space-y-1">
-                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Preço (€)</label>
-                  <input type="number" step="0.5" id="in-price" value="30" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition">
+                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Valor do Serviço (€)</label>
+                  <input type="number" step="0.5" id="j-price" value="30" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
                 </div>
                 <div class="space-y-1">
                   <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Data</label>
-                  <input type="date" id="in-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
+                  <input type="date" id="j-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                   <div class="space-y-1">
-                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Início</label>
-                    <input type="time" id="in-start" value="09:00" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
+                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Hora Início</label>
+                    <input type="time" id="j-start" value="09:00" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
                   </div>
                   <div class="space-y-1">
-                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Fim</label>
-                    <input type="time" id="in-end" value="10:30" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
+                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Hora Fim</label>
+                    <input type="time" id="j-end" value="10:30" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
                   </div>
                 </div>
+                <div class="space-y-1">
+                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Recorrência</label>
+                  <select id="j-recurrence" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
+                    <option value="none">Uma única vez</option>
+                    <option value="weekly">Semanal (12 sem.)</option>
+                    <option value="biweekly">Quinzenal (6x)</option>
+                    <option value="monthly">Mensal (6 meses)</option>
+                  </select>
+                </div>
               </div>
-              <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-black shadow-lg">Confirmar Registo</button>
+              <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-black shadow-lg">Confirmar Agendamento</button>
             </form>
           </div>
 
-          <div id="jobs-list" class="space-y-4">
-            <!-- Jobs will be injected here -->
+          <!-- Otimização de Rota IA -->
+          <div class="bg-slate-900 p-6 rounded-[2rem] text-white flex flex-col sm:flex-row items-center justify-between gap-4 border border-slate-800 shadow-xl overflow-hidden relative">
+             <div class="relative z-10 flex items-center gap-4">
+                <div class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white">
+                   <i class="fas fa-route"></i>
+                </div>
+                <div>
+                   <h3 class="font-black text-sm uppercase">Assistente de Rota</h3>
+                   <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Otimização Geográfica por IA</p>
+                </div>
+             </div>
+             <button onclick="optimizeRoute()" id="btn-optimize" class="relative z-10 bg-white text-slate-900 px-5 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                Otimizar Hoje
+             </button>
+             <i class="fas fa-map absolute -right-4 -bottom-4 text-9xl opacity-5 rotate-12"></i>
+          </div>
+
+          <!-- Lista de Serviços -->
+          <div id="jobs-list" class="space-y-4 pb-12">
+            <!-- Jobs dinâmicos -->
           </div>
         </div>
       </section>
 
-      <!-- View: Finance -->
+      <!-- VIEW: FINANCE -->
       <section id="view-finance" class="view">
         <div class="space-y-6">
           <div class="flex justify-between items-center">
-            <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Custos Operacionais</h2>
-            <button onclick="toggleForm('expense-form')" class="bg-rose-500 text-white px-6 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-rose-500/20 active:scale-95 transition-all">
+            <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Fluxo de Caixa & Custos</h2>
+            <button onclick="toggleElement('exp-form-box')" class="bg-rose-500 text-white px-5 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-rose-500/20 active:scale-95 transition-all">
               + Registar Gasto
             </button>
           </div>
 
-          <div id="expense-form" class="hidden animate-in">
-            <form id="form-add-expense" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 space-y-4">
-              <input required id="in-exp-desc" placeholder="Ex: Gasolina, Sementes" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm outline-none">
+          <div id="exp-form-box" class="hidden animate-in">
+            <form id="form-expense" class="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 space-y-4">
+              <input required id="e-desc" placeholder="Ex: Combustível Stihl, Sementes" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm outline-none">
               <div class="grid grid-cols-2 gap-4">
-                <input type="number" step="0.01" id="in-exp-amount" placeholder="0.00€" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm">
-                <input type="date" id="in-exp-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm">
+                <input type="number" step="0.01" id="e-amount" placeholder="0.00€" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm">
+                <input type="date" id="e-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm">
               </div>
               <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg">Gravar Despesa</button>
             </form>
           </div>
 
-          <div class="bg-white rounded-[2rem] border border-slate-100 card-shadow overflow-hidden">
+          <div class="bg-white rounded-[2.5rem] border border-slate-100 card-shadow overflow-hidden">
             <table class="w-full text-left">
               <thead class="bg-slate-50 border-b border-slate-100">
                 <tr>
-                  <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-400">Data</th>
-                  <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-400">Descrição</th>
-                  <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-400 text-right">Valor</th>
+                  <th class="px-6 py-5 text-[10px] font-black uppercase text-slate-400">Data</th>
+                  <th class="px-6 py-5 text-[10px] font-black uppercase text-slate-400">Descrição</th>
+                  <th class="px-6 py-5 text-[10px] font-black uppercase text-slate-400 text-right">Valor</th>
                 </tr>
               </thead>
-              <tbody id="expenses-table-body" class="divide-y divide-slate-50">
-                <!-- Expenses will be injected here -->
+              <tbody id="expenses-body" class="divide-y divide-slate-50">
+                <!-- Expenses dinâmicas -->
               </tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <!-- View: Settings -->
+      <!-- VIEW: AI PRO -->
+      <section id="view-ai" class="view">
+        <div class="space-y-8 text-center max-w-2xl mx-auto py-10">
+          <div class="w-24 h-24 bg-emerald-100 rounded-[2rem] flex items-center justify-center text-emerald-600 text-4xl mx-auto shadow-inner">
+            <i class="fas fa-robot"></i>
+          </div>
+          <div>
+            <h2 class="text-3xl font-black text-slate-800 uppercase tracking-tight">Consultoria Estratégica</h2>
+            <p class="text-slate-500 mt-3 font-medium leading-relaxed px-4">O VerdeGest analisa os seus serviços concluídos e gastos para gerar recomendações de lucro e eficiência.</p>
+          </div>
+          <button onclick="generateInsights()" id="btn-insights" class="bg-emerald-600 text-white px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl shadow-emerald-600/30 active:scale-95 transition-all">
+            Gerar Relatório de Insights
+          </button>
+          <div id="ai-report" class="hidden text-left bg-white p-8 rounded-[2.5rem] card-shadow border border-emerald-50 text-slate-700 leading-relaxed text-sm animate-in whitespace-pre-line">
+            <!-- Relatório Gemini -->
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: SETTINGS / CLOUD -->
       <section id="view-settings" class="view">
         <div class="space-y-6">
           <div class="bg-white p-8 rounded-[2.5rem] card-shadow border border-slate-100">
             <h2 class="text-xl font-black text-slate-800 uppercase mb-4 flex items-center gap-2">
               <i class="fas fa-cloud-arrow-up text-emerald-500"></i> Cloud Sincronização
             </h2>
-            <p class="text-[10px] text-slate-400 font-bold uppercase mb-4">Cole o seu URL do Google Apps Script:</p>
+            <p class="text-[10px] text-slate-400 font-bold uppercase mb-6 leading-relaxed">Conecte o URL do seu Google Apps Script para espelhar dados numa Google Sheet automaticamente.</p>
             <div class="space-y-4">
-              <input id="in-settings-url" type="text" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs font-mono outline-none focus:ring-2 focus:ring-emerald-500">
-              <button onclick="saveSettings()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-emerald-600/20 active:scale-95 transition-all">
-                Ligar Nuvem e Salvar
+              <input id="s-url" type="text" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-5 text-xs font-mono outline-none focus:ring-2 focus:ring-emerald-500">
+              <button onclick="saveSettings()" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-emerald-600/20 active:scale-95 transition-all">
+                Salvar & Conectar Nuvem
               </button>
             </div>
           </div>
 
           <div class="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
              <div class="relative z-10">
-                <h3 class="font-black uppercase tracking-widest text-xs mb-6">Backup de Emergência</h3>
-                <div class="flex flex-col sm:flex-row gap-4">
-                   <button onclick="syncNow()" class="flex-1 bg-white text-slate-900 py-4 rounded-2xl font-black uppercase text-[10px] hover:bg-emerald-50 transition active:scale-95">
-                      Sincronizar Agora
+                <h3 class="font-black uppercase tracking-widest text-[10px] text-slate-500 mb-8">Administração de Dados</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <button onclick="manualSync()" class="bg-white text-slate-900 py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-all">
+                      <i class="fas fa-sync mr-2"></i> Sync Manual
                    </button>
-                   <button onclick="exportData()" class="flex-1 bg-slate-800 text-white py-4 rounded-2xl font-black uppercase text-[10px] border border-white/10 active:scale-95">
-                      Exportar JSON
+                   <button onclick="exportData()" class="bg-slate-800 text-white py-4 rounded-2xl font-black uppercase text-[10px] border border-white/5 active:scale-95 transition-all">
+                      <i class="fas fa-file-export mr-2"></i> Exportar Backup
                    </button>
                 </div>
+                <button onclick="clearAllData()" class="w-full mt-4 text-[9px] font-black uppercase text-rose-500 hover:text-rose-400 p-2">Eliminar todos os dados locais</button>
              </div>
-             <i class="fas fa-database absolute -right-8 -bottom-8 text-[12rem] opacity-5"></i>
+             <i class="fas fa-database absolute -right-10 -bottom-10 text-[14rem] opacity-5"></i>
           </div>
         </div>
       </section>
     </main>
 
-    <!-- Mobile Bottom Navigation -->
+    <!-- Mobile Navigation -->
     <nav class="md:hidden fixed bottom-0 left-0 right-0 glass border-t border-slate-200 flex justify-around p-4 z-50 safe-area-bottom shadow-2xl">
-      <button onclick="switchView('dashboard')" class="mobile-nav-btn flex flex-col items-center gap-1.5 px-3 py-1 transition-all text-slate-400 active" id="mbtn-dashboard">
+      <button onclick="switchView('dashboard')" id="mbtn-dashboard" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 transition-all text-slate-400 active">
         <i class="fas fa-chart-pie text-lg"></i>
         <span class="text-[8px] font-black uppercase tracking-tighter">Início</span>
       </button>
-      <button onclick="switchView('jobs')" class="mobile-nav-btn flex flex-col items-center gap-1.5 px-3 py-1 transition-all text-slate-400" id="mbtn-jobs">
+      <button onclick="switchView('jobs')" id="mbtn-jobs" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 transition-all text-slate-400">
         <i class="fas fa-calendar-alt text-lg"></i>
         <span class="text-[8px] font-black uppercase tracking-tighter">Agenda</span>
       </button>
-      <button onclick="switchView('finance')" class="mobile-nav-btn flex flex-col items-center gap-1.5 px-3 py-1 transition-all text-slate-400" id="mbtn-finance">
+      <button onclick="switchView('finance')" id="mbtn-finance" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 transition-all text-slate-400">
         <i class="fas fa-wallet text-lg"></i>
-        <span class="text-[8px] font-black uppercase tracking-tighter">Gastos</span>
+        <span class="text-[8px] font-black uppercase tracking-tighter">Custos</span>
       </button>
-      <button onclick="switchView('settings')" class="mobile-nav-btn flex flex-col items-center gap-1.5 px-3 py-1 transition-all text-slate-400" id="mbtn-settings">
+      <button onclick="switchView('ai')" id="mbtn-ai" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 transition-all text-slate-400">
+        <i class="fas fa-robot text-lg"></i>
+        <span class="text-[8px] font-black uppercase tracking-tighter">IA Pro</span>
+      </button>
+      <button onclick="switchView('settings')" id="mbtn-settings" class="nav-btn flex flex-col items-center gap-1.5 px-3 py-1 transition-all text-slate-400">
         <i class="fas fa-cloud text-lg"></i>
-        <span class="text-[8px] font-black uppercase tracking-tighter">Nuvem</span>
+        <span class="text-[8px] font-black uppercase tracking-tighter">Cloud</span>
       </button>
     </nav>
   </div>
 
-  <script>
-    // --- STATE ---
+  <!-- SCRIPT ENGINE -->
+  <script type="module">
+    import { GoogleGenAI, Type } from "@google/genai";
+
+    // --- ESTADO GLOBAL ---
     let state = {
       jobs: JSON.parse(localStorage.getItem('vg_jobs')) || [],
       expenses: JSON.parse(localStorage.getItem('vg_exp')) || [],
-      settings: JSON.parse(localStorage.getItem('vg_set')) || { googleScriptUrl: '' }
+      settings: JSON.parse(localStorage.getItem('vg_set')) || { googleScriptUrl: '' },
+      timer: { active: false, start: null, current: 0 }
     };
 
-    let chartInstance = null;
+    let chart = null;
+    let timerInterval = null;
 
-    // --- INITIALIZE ---
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('in-date').value = new Date().toISOString().split('T')[0];
-      document.getElementById('in-exp-date').value = new Date().toISOString().split('T')[0];
-      document.getElementById('in-settings-url').value = state.settings.googleScriptUrl || '';
+    // --- INICIALIZAÇÃO ---
+    window.addEventListener('load', () => {
+      document.getElementById('j-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('e-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('s-url').value = state.settings.googleScriptUrl || '';
       
       renderAll();
       initChart();
+      autoFetch();
     });
 
-    // --- NAVIGATION ---
-    function switchView(viewName) {
+    // --- COMPONENTES UI (VANILLA) ---
+    window.switchView = (viewName) => {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.getElementById('view-' + viewName).classList.add('active');
 
-      document.querySelectorAll('.nav-btn, .mobile-nav-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById('btn-' + viewName).classList.add('active');
-      document.getElementById('mbtn-' + viewName).classList.add('active');
+      document.querySelectorAll('.nav-btn, .sidebar-btn').forEach(b => {
+        b.classList.remove('active', 'sidebar-active');
+        if (b.id.includes(viewName)) {
+           if(b.classList.contains('sidebar-btn')) b.classList.add('sidebar-active');
+           else b.classList.add('active');
+        }
+      });
+    };
 
-      if(viewName === 'dashboard') renderDashboard();
-    }
+    window.toggleElement = (id) => document.getElementById(id).classList.toggle('hidden');
 
-    function toggleForm(id) {
-      document.getElementById(id).classList.toggle('hidden');
-    }
-
-    // --- LOGIC ---
     function renderAll() {
       renderDashboard();
       renderJobs();
       renderExpenses();
-      updateSyncStatus('Local');
     }
 
     function renderDashboard() {
       const completed = state.jobs.filter(j => j.status === 'completed');
       const income = completed.reduce((s, j) => s + (Number(j.totalValue) || 0), 0);
       const cost = state.expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
-      const balance = income - cost;
-
-      document.getElementById('dash-balance').innerText = balance.toFixed(2) + '€';
+      
+      document.getElementById('dash-balance').innerText = (income - cost).toFixed(2) + '€';
       document.getElementById('dash-income').innerText = income.toFixed(2) + '€';
       document.getElementById('dash-cost').innerText = cost.toFixed(2) + '€';
-      document.getElementById('dash-jobs-count').innerText = state.jobs.filter(j => j.status !== 'completed').length;
-      document.getElementById('dash-debt-count').innerText = state.jobs.filter(j => j.paymentStatus === 'unpaid' && j.status === 'completed').length;
+      document.getElementById('dash-jobs-pending').innerText = state.jobs.filter(j => j.status !== 'completed').length;
+      document.getElementById('dash-debts').innerText = state.jobs.filter(j => j.paymentStatus === 'unpaid' && j.status === 'completed').length;
 
-      updateChart(income, cost);
+      if(chart) {
+        chart.data.datasets[0].data = [income, cost];
+        chart.update();
+      }
     }
 
     function renderJobs() {
@@ -339,10 +418,11 @@
       list.innerHTML = '';
 
       if (state.jobs.length === 0) {
-        list.innerHTML = `<div class="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
-                <i class="fas fa-calendar-day text-slate-200 text-5xl mb-4"></i>
-                <p class="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Sem serviços registados</p>
-              </div>`;
+        list.innerHTML = `
+          <div class="text-center py-20 bg-white rounded-[2rem] border border-dashed border-slate-200">
+            <i class="fas fa-calendar-day text-slate-200 text-5xl mb-4"></i>
+            <p class="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Sem serviços registados</p>
+          </div>`;
         return;
       }
 
@@ -350,38 +430,39 @@
         const div = document.createElement('div');
         div.className = "bg-white p-6 rounded-[2rem] border border-slate-100 card-shadow flex justify-between items-center group hover:border-emerald-200 transition-all";
         div.innerHTML = `
-                <div class="flex gap-4 items-center">
-                  <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl ${j.status === 'completed' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}">
-                    <i class="fas ${j.status === 'completed' ? 'fa-circle-check' : 'fa-clock'}"></i>
-                  </div>
-                  <div>
-                    <h4 class="font-black text-slate-800 text-lg leading-tight">${j.clientName}</h4>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">${j.date} • ${j.startTime}</p>
-                    <div class="flex gap-2 mt-2">
-                      <span class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${j.paymentStatus === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}">
-                        ${j.paymentStatus === 'paid' ? 'Pago' : 'Dívida'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div class="text-right flex flex-col items-end gap-2">
-                  <p class="font-black text-slate-900 text-xl tracking-tight">${Number(j.totalValue).toFixed(2)}€</p>
-                  <div class="flex gap-2">
-                    ${j.status !== 'completed' ? `<button onclick="updateJobStatus('${j.id}', 'completed')" class="text-[9px] font-black uppercase text-emerald-600 hover:underline">Concluir</button>` : ''}
-                    ${j.status === 'completed' && j.paymentStatus === 'unpaid' ? `<button onclick="updateJobPayment('${j.id}', 'paid')" class="text-[9px] font-black uppercase text-emerald-600 hover:underline">Marcar Pago</button>` : ''}
-                    <button onclick="deleteJob('${j.id}')" class="text-[9px] font-black uppercase text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>
-                  </div>
-                </div>`;
+          <div class="flex gap-4 items-center">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl ${j.status === 'completed' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}">
+              <i class="fas ${j.status === 'completed' ? 'fa-circle-check' : 'fa-clock'}"></i>
+            </div>
+            <div>
+              <h4 class="font-black text-slate-800 text-lg leading-tight">${j.clientName}</h4>
+              <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">${j.date} • ${j.startTime}</p>
+              <div class="flex gap-2 mt-2">
+                <span class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${j.paymentStatus === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}">
+                  ${j.paymentStatus === 'paid' ? 'Pago' : 'Dívida'}
+                </span>
+                ${j.recurrence && j.recurrence !== 'none' ? `<span class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-50 text-blue-600"><i class="fas fa-repeat mr-1"></i> ${j.recurrence}</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="text-right flex flex-col items-end gap-2">
+            <p class="font-black text-slate-900 text-xl tracking-tight">${Number(j.totalValue).toFixed(2)}€</p>
+            <div class="flex gap-3">
+              ${j.status !== 'completed' ? `<button onclick="updateJobStatus('${j.id}', 'completed')" class="text-[9px] font-black uppercase text-emerald-600 hover:underline">Concluir</button>` : ''}
+              ${j.status === 'completed' && j.paymentStatus === 'unpaid' ? `<button onclick="updateJobPayment('${j.id}', 'paid')" class="text-[9px] font-black uppercase text-emerald-600 hover:underline">Marcar Pago</button>` : ''}
+              <button onclick="deleteJob('${j.id}')" class="text-[9px] font-black uppercase text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>
+            </div>
+          </div>`;
         list.appendChild(div);
       });
     }
 
     function renderExpenses() {
-      const tbody = document.getElementById('expenses-table-body');
+      const tbody = document.getElementById('expenses-body');
       tbody.innerHTML = '';
 
       if (state.expenses.length === 0) {
-        tbody.innerHTML = `<tr><td colSpan="3" class="px-6 py-10 text-center text-slate-400 text-xs italic">Sem gastos registados</td></tr>`;
+        tbody.innerHTML = `<tr><td colSpan="3" class="px-6 py-12 text-center text-slate-400 text-xs italic">Sem gastos registados</td></tr>`;
         return;
       }
 
@@ -389,24 +470,276 @@
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50 transition";
         tr.innerHTML = `
-                    <td class="px-6 py-4 text-xs font-bold text-slate-400">${e.date}</td>
-                    <td class="px-6 py-4 text-xs font-black text-slate-800 uppercase">${e.description}</td>
-                    <td class="px-6 py-4 text-sm font-black text-rose-500 text-right">-${Number(e.amount).toFixed(2)}€</td>`;
+          <td class="px-6 py-5 text-xs font-bold text-slate-400">${e.date}</td>
+          <td class="px-6 py-5 text-xs font-black text-slate-800 uppercase">${e.description}</td>
+          <td class="px-6 py-5 text-sm font-black text-rose-500 text-right flex items-center justify-end gap-3">
+             <span>-${Number(e.amount).toFixed(2)}€</span>
+             <button onclick="deleteExpense('${e.id}')" class="text-slate-200 hover:text-rose-500 text-xs"><i class="fas fa-trash"></i></button>
+          </td>`;
         tbody.appendChild(tr);
       });
     }
 
-    // --- CHART ---
+    // --- IA ENGINE (GEMINI) ---
+    window.generateInsights = async () => {
+      const btn = document.getElementById('btn-insights');
+      const reportDiv = document.getElementById('ai-report');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Analisando...';
+
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const prompt = `Analise os meus dados de jardinagem. Serviços: ${JSON.stringify(state.jobs)}. Custos: ${JSON.stringify(state.expenses)}.
+      Dê 3 recomendações financeiras para aumentar lucro e 1 dica sazonal de jardinagem em Portugal. Formate com emojis.`;
+
+      try {
+        const res = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: prompt });
+        reportDiv.innerText = res.text;
+        reportDiv.classList.remove('hidden');
+      } catch (e) {
+        reportDiv.innerText = "Erro ao ligar à IA. Verifique a sua ligação ou API Key.";
+        reportDiv.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Gerar Relatório de Insights';
+      }
+    };
+
+    window.optimizeRoute = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const todayJobs = state.jobs.filter(j => j.date === today && j.location);
+      if (todayJobs.length < 2) {
+         alert("São necessários pelo menos 2 serviços hoje com localização capturada para otimizar.");
+         return;
+      }
+
+      const btn = document.getElementById('btn-optimize');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const context = todayJobs.map(j => ({ id: j.id, client: j.clientName, lat: j.location.lat, lng: j.location.lng }));
+      
+      const prompt = `Otimize a rota de visita para estes clientes com base em lat/lng: ${JSON.stringify(context)}. Forneça apenas a lista de nomes por ordem ideal.`;
+
+      try {
+        const res = await ai.models.generateContent({ model: 'gemini-3-pro-preview', contents: prompt });
+        alert("Sugestão de Rota:\n" + res.text);
+      } catch (e) {
+        alert("Erro na IA: Tente novamente mais tarde.");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Otimizar Hoje';
+      }
+    };
+
+    // --- TIMER ENGINE ---
+    window.toggleTimer = () => {
+      if(!state.timer.active) {
+        state.timer.active = true;
+        state.timer.start = Date.now();
+        document.getElementById('timer-banner').classList.remove('hidden');
+        document.getElementById('timer-label').innerText = 'Parar';
+        document.getElementById('btn-timer').classList.replace('bg-rose-500', 'bg-slate-900');
+        
+        timerInterval = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - state.timer.start) / 1000);
+          const h = Math.floor(elapsed / 3600).toString().padStart(2, '0');
+          const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+          const s = (elapsed % 60).toString().padStart(2, '0');
+          document.getElementById('timer-display').innerText = `${h}:${m}:${s}`;
+        }, 1000);
+      } else {
+        stopTimerAndFill();
+      }
+    };
+
+    window.stopTimerAndFill = () => {
+      clearInterval(timerInterval);
+      const elapsedHours = (Date.now() - state.timer.start) / (1000 * 60 * 60);
+      
+      const now = new Date();
+      document.getElementById('j-start').value = new Date(state.timer.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      document.getElementById('j-end').value = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      
+      state.timer.active = false;
+      document.getElementById('timer-banner').classList.add('hidden');
+      document.getElementById('timer-label').innerText = 'Timer';
+      document.getElementById('btn-timer').classList.replace('bg-slate-900', 'bg-rose-500');
+      
+      switchView('jobs');
+      document.getElementById('job-form-box').classList.remove('hidden');
+      document.getElementById('j-client').focus();
+    };
+
+    // --- ACTIONS & SYNC ---
+    window.captureLocation = () => {
+      const btn = document.getElementById('btn-geo');
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      navigator.geolocation.getCurrentPosition(pos => {
+        state.currentLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        btn.className = "px-3 rounded-xl border border-emerald-500 bg-emerald-50 text-emerald-600";
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+      }, () => {
+        alert("Erro ao capturar GPS.");
+        btn.innerHTML = '<i class="fas fa-location-dot"></i>';
+      });
+    };
+
+    document.getElementById('form-job').onsubmit = (e) => {
+      e.preventDefault();
+      const baseDate = document.getElementById('j-date').value;
+      const recurrence = document.getElementById('j-recurrence').value;
+      
+      const count = recurrence === 'weekly' ? 12 : recurrence === 'biweekly' ? 6 : recurrence === 'monthly' ? 6 : 1;
+      const days = recurrence === 'weekly' ? 7 : recurrence === 'biweekly' ? 14 : recurrence === 'monthly' ? 30 : 0;
+
+      for(let i=0; i<count; i++) {
+        const d = new Date(baseDate);
+        if(recurrence === 'monthly') d.setMonth(d.getMonth() + i);
+        else d.setDate(d.getDate() + (i * days));
+
+        const job = {
+          id: Date.now().toString() + i,
+          clientName: document.getElementById('j-client').value,
+          totalValue: Number(document.getElementById('j-price').value),
+          date: d.toISOString().split('T')[0],
+          startTime: document.getElementById('j-start').value,
+          endTime: document.getElementById('j-end').value,
+          recurrence: recurrence,
+          status: 'scheduled',
+          paymentStatus: 'unpaid',
+          location: state.currentLoc
+        };
+        state.jobs.push(job);
+      }
+
+      saveAndSync();
+      document.getElementById('form-job').reset();
+      document.getElementById('job-form-box').classList.add('hidden');
+      state.currentLoc = null;
+      document.getElementById('btn-geo').className = "px-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-400";
+      document.getElementById('btn-geo').innerHTML = '<i class="fas fa-location-dot"></i>';
+    };
+
+    document.getElementById('form-expense').onsubmit = (e) => {
+      e.preventDefault();
+      state.expenses.push({
+        id: Date.now().toString(),
+        description: document.getElementById('e-desc').value,
+        amount: Number(document.getElementById('e-amount').value),
+        date: document.getElementById('e-date').value
+      });
+      saveAndSync();
+      document.getElementById('form-expense').reset();
+      document.getElementById('exp-form-box').classList.add('hidden');
+    };
+
+    window.updateJobStatus = (id, s) => {
+      state.jobs = state.jobs.map(j => j.id === id ? {...j, status: s} : j);
+      saveAndSync();
+    };
+
+    window.updateJobPayment = (id, p) => {
+      state.jobs = state.jobs.map(j => j.id === id ? {...j, paymentStatus: p} : j);
+      saveAndSync();
+    };
+
+    window.deleteJob = (id) => {
+      if(confirm('Apagar serviço?')) {
+        state.jobs = state.jobs.filter(j => j.id !== id);
+        saveAndSync();
+      }
+    };
+
+    window.deleteExpense = (id) => {
+      if(confirm('Apagar gasto?')) {
+        state.expenses = state.expenses.filter(e => e.id !== id);
+        saveAndSync();
+      }
+    };
+
+    window.saveSettings = () => {
+      state.settings.googleScriptUrl = document.getElementById('s-url').value;
+      localStorage.setItem('vg_set', JSON.stringify(state.settings));
+      manualSync();
+    };
+
+    // --- STORAGE & CLOUD ---
+    function saveAndSync() {
+      localStorage.setItem('vg_jobs', JSON.stringify(state.jobs));
+      localStorage.setItem('vg_exp', JSON.stringify(state.expenses));
+      renderAll();
+      manualSync();
+    }
+
+    async function autoFetch() {
+      if(!state.settings.googleScriptUrl) return;
+      try {
+        const r = await fetch(state.settings.googleScriptUrl);
+        const d = await r.json();
+        if(d && d.jobs) {
+          state.jobs = d.jobs; state.expenses = d.expenses || [];
+          localStorage.setItem('vg_jobs', JSON.stringify(state.jobs));
+          localStorage.setItem('vg_exp', JSON.stringify(state.expenses));
+          renderAll();
+        }
+      } catch(e) {}
+    }
+
+    window.manualSync = async () => {
+      if(!state.settings.googleScriptUrl) return;
+      
+      const label = document.getElementById('sync-label');
+      const dot = document.getElementById('sync-dot');
+      const badge = document.getElementById('mobile-badge');
+      
+      label.innerText = 'Sync...';
+      dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse";
+      badge.innerText = 'Sync...';
+
+      try {
+        await fetch(state.settings.googleScriptUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({ jobs: state.jobs, expenses: state.expenses, timestamp: new Date().toISOString() })
+        });
+        label.innerText = 'Cloud OK';
+        dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
+        badge.innerText = 'Cloud OK';
+      } catch(e) {
+        label.innerText = 'Offline';
+        dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+        badge.innerText = 'Offline';
+      }
+    };
+
+    window.exportData = () => {
+      const data = JSON.stringify(state);
+      const blob = new Blob([data], {type: 'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'verdegest_backup.json';
+      a.click();
+    };
+
+    window.clearAllData = () => {
+       if(confirm("ISTO VAI APAGAR TUDO NO TELEMÓVEL. Tem a certeza?")) {
+          localStorage.clear();
+          location.reload();
+       }
+    }
+
+    // --- CHART ENGINE ---
     function initChart() {
-      const ctx = document.getElementById('mainChart').getContext('2d');
-      chartInstance = new Chart(ctx, {
+      const ctx = document.getElementById('dashChart').getContext('2d');
+      chart = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: ['Facturado', 'Custos'],
+          labels: ['Receita', 'Custos'],
           datasets: [{
             data: [0, 0],
             backgroundColor: ['#10b981', '#f43f5e'],
-            borderRadius: 12,
+            borderRadius: 15,
             borderSkipped: false
           }]
         },
@@ -422,128 +755,6 @@
       });
     }
 
-    function updateChart(income, cost) {
-      if(!chartInstance) return;
-      chartInstance.data.datasets[0].data = [income, cost];
-      chartInstance.update();
-    }
-
-    // --- ACTIONS ---
-    document.getElementById('form-add-job').onsubmit = (e) => {
-      e.preventDefault();
-      const job = {
-        id: Date.now().toString(),
-        clientName: document.getElementById('in-client').value,
-        totalValue: document.getElementById('in-price').value,
-        date: document.getElementById('in-date').value,
-        startTime: document.getElementById('in-start').value,
-        endTime: document.getElementById('in-end').value,
-        status: 'scheduled',
-        paymentStatus: 'unpaid'
-      };
-      state.jobs.push(job);
-      saveAndSync();
-      document.getElementById('form-add-job').reset();
-      toggleForm('job-form');
-    };
-
-    document.getElementById('form-add-expense').onsubmit = (e) => {
-      e.preventDefault();
-      const expense = {
-        id: Date.now().toString(),
-        description: document.getElementById('in-exp-desc').value,
-        amount: document.getElementById('in-exp-amount').value,
-        date: document.getElementById('in-exp-date').value
-      };
-      state.expenses.push(expense);
-      saveAndSync();
-      document.getElementById('form-add-expense').reset();
-      toggleForm('expense-form');
-    };
-
-    function updateJobStatus(id, status) {
-      state.jobs = state.jobs.map(j => j.id === id ? { ...j, status } : j);
-      saveAndSync();
-    }
-
-    function updateJobPayment(id, paymentStatus) {
-      state.jobs = state.jobs.map(j => j.id === id ? { ...j, paymentStatus } : j);
-      saveAndSync();
-    }
-
-    function deleteJob(id) {
-      if(!confirm('Apagar serviço?')) return;
-      state.jobs = state.jobs.filter(j => j.id !== id);
-      saveAndSync();
-    }
-
-    function saveSettings() {
-      state.settings.googleScriptUrl = document.getElementById('in-settings-url').value;
-      localStorage.setItem('vg_set', JSON.stringify(state.settings));
-      syncNow();
-    }
-
-    function saveAndSync() {
-      localStorage.setItem('vg_jobs', JSON.stringify(state.jobs));
-      localStorage.setItem('vg_exp', JSON.stringify(state.expenses));
-      renderAll();
-      syncNow();
-    }
-
-    async function syncNow() {
-      if (!state.settings.googleScriptUrl) return;
-      
-      updateSyncStatus('Sync...');
-      
-      try {
-        const payload = JSON.stringify({
-          jobs: state.jobs,
-          expenses: state.expenses,
-          timestamp: new Date().toISOString()
-        });
-
-        // Using no-cors as Apps Script usually handles this better for simple web apps
-        await fetch(state.settings.googleScriptUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain' },
-          body: payload
-        });
-
-        updateSyncStatus('Cloud OK');
-      } catch (e) {
-        updateSyncStatus('Offline');
-        console.error('Sync error:', e);
-      }
-    }
-
-    function updateSyncStatus(text) {
-      const dot = document.getElementById('sync-indicator');
-      const badge = document.getElementById('mobile-sync-badge');
-      const label = document.getElementById('sync-text');
-
-      label.innerText = text;
-      badge.innerText = text;
-
-      if(text === 'Cloud OK' || text === 'Local') {
-        dot.className = "w-2 h-2 rounded-full bg-emerald-500";
-        badge.className = "px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700";
-      } else if(text === 'Sync...') {
-        dot.className = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
-        badge.className = "px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-amber-100 text-amber-700";
-      } else {
-        dot.className = "w-2 h-2 rounded-full bg-rose-500";
-        badge.className = "px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-rose-100 text-rose-700";
-      }
-    }
-
-    function exportData() {
-      const blob = new Blob([JSON.stringify(state)], {type: 'application/json'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'verdegest_backup.json';
-      a.click();
-    }
   </script>
 </body>
 </html>
