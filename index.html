@@ -1,353 +1,48 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
-  <title>VerdeGest Pro - Gestão de Jardins</title>
-  
-  <meta name="theme-color" content="#065f46">
-  <meta name="description" content="Gestão completa de tempos e finanças para jardins.">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  
-  <style>
-    :root { --safe-area-inset-bottom: env(safe-area-inset-bottom); }
-    body { 
-      font-family: 'Inter', sans-serif; 
-      background-color: #f8fafc; 
-      overscroll-behavior-y: contain; 
-      color: #1e293b;
-      -webkit-tap-highlight-color: transparent;
-    }
-    input, select, textarea { font-size: 16px !important; }
-    .safe-area-bottom { padding-bottom: calc(0.5rem + var(--safe-area-inset-bottom)); }
-    .animate-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-    .card-shadow { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.02); }
-    .tab-active { color: #10b981; }
-    .btn-press:active { transform: scale(0.96); transition: transform 0.1s; }
-  </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "recharts": "https://esm.sh/recharts@^3.6.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.37.0"
-  }
-}
-</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VerdeGest Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="selection:bg-emerald-100 selection:text-emerald-900">
-  <div id="root"></div>
+<body class="bg-slate-900 text-white font-sans">
+    <div class="max-w-md mx-auto min-h-screen flex flex-col p-6">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-bold text-emerald-400">VerdeGest <span class="text-white">Pro</span></h1>
+            <div class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-xs">Nuvem OK</div>
+        </header>
 
-  <script type="module">
-    import React from 'https://esm.sh/react@19.0.0';
-    import { createRoot } from 'https://esm.sh/react-dom@19.0.0/client';
-    import htm from 'https://esm.sh/htm@3.1.1';
-    import { GoogleGenAI } from "https://esm.sh/@google/genai@1.3.1";
-    import * as Recharts from 'https://esm.sh/recharts@2.12.7';
-
-    const { useState, useEffect, useMemo, useRef } = React;
-    const html = htm.bind(React.createElement);
-    const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } = Recharts;
-
-    const STORAGE_KEYS = {
-      JOBS: 'vg_j',
-      EXPENSES: 'vg_e',
-      SETTINGS: 'vg_s',
-    };
-
-    const DEFAULT_TASKS = [
-      'Corte de relva', 'Poda de árvores', 'Limpeza', 'Fertilização',
-      'Tratamento', 'Manutenção Rega', 'Plantação', 'Resíduos'
-    ];
-
-    // --- UTILS ---
-    const getStorage = (key, def = []) => {
-      const val = localStorage.getItem(key);
-      return val ? JSON.parse(val) : def;
-    };
-
-    const setStorage = (key, val) => localStorage.setItem(key, JSON.stringify(val));
-
-    // --- COMPONENTS ---
-
-    const DashboardView = ({ jobs, expenses }) => {
-      const completed = jobs.filter(j => j.status === 'completed');
-      const income = completed.reduce((s, j) => s + (j.totalValue || 0), 0);
-      const cost = expenses.reduce((s, e) => s + (e.amount || 0), 0);
-      const balance = income - cost;
-
-      const chartData = [
-        { name: 'Receita', val: income, color: '#10b981' },
-        { name: 'Custos', val: cost, color: '#f43f5e' }
-      ];
-
-      return html`
-        <div className="space-y-6 animate-in">
-          <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
-            <div className="relative z-10">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Saldo Actual</p>
-              <h2 className="text-5xl font-black mt-2 tracking-tighter">${balance.toFixed(2)}€</h2>
-              <div className="flex gap-4 mt-8">
-                <div className="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/5 flex-1">
-                  <p className="text-[9px] font-black opacity-60 uppercase">Ganhos</p>
-                  <p className="text-lg font-black">${income.toFixed(2)}€</p>
+        <div class="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-6 mb-6 shadow-xl">
+            <p class="text-emerald-100 text-sm">Bem-vindo,</p>
+            <h2 class="text-2xl font-bold mb-4">Administrador</h2>
+            <div class="flex gap-4">
+                <div class="bg-white/10 p-3 rounded-2xl flex-1">
+                    <p class="text-[10px] uppercase opacity-70">Saldo</p>
+                    <p class="text-xl font-bold">0.00€</p>
                 </div>
-                <div className="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/5 flex-1">
-                  <p className="text-[9px] font-black opacity-60 uppercase">Gastos</p>
-                  <p className="text-lg font-black">${cost.toFixed(2)}€</p>
+                <div class="bg-white/10 p-3 rounded-2xl flex-1">
+                    <p class="text-[10px] uppercase opacity-70">Próximos</p>
+                    <p class="text-xl font-bold">0</p>
                 </div>
-              </div>
             </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 card-shadow">
-            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-6">Performance</h3>
-            <div className="h-64">
-              <${ResponsiveContainer} width="100%" height="100%">
-                <${BarChart} data=${chartData}>
-                  <${XAxis} dataKey="name" axisLine=${false} tickLine=${false} tick=${{fontSize: 10, fontWeight: 800, fill: '#94a3b8'}} />
-                  <${Tooltip} />
-                  <${Bar} dataKey="val" radius=${[8, 8, 0, 0]} barSize=${45}>
-                    ${chartData.map((e, i) => html`<${Cell} key=${i} fill=${e.color} />`)}
-                  <//>
-                <//>
-              <//>
-            </div>
-          </div>
         </div>
-      `;
-    };
 
-    const JobsView = ({ jobs, onAdd, onDelete, onUpdateStatus, settings }) => {
-      const [showForm, setShowForm] = useState(false);
-      const [formData, setFormData] = useState({
-        clientName: '', date: new Date().toISOString().split('T')[0],
-        startTime: '09:00', endTime: '10:30', tasks: [],
-        totalValue: 30, status: 'scheduled'
-      });
-
-      const handleSubmit = (e) => {
-        e.preventDefault();
-        onAdd({ ...formData, id: Date.now().toString() });
-        setShowForm(false);
-        setFormData({ ...formData, clientName: '', tasks: [] });
-      };
-
-      const toggleTask = (t) => setFormData(p => ({ 
-        ...p, tasks: p.tasks.includes(t) ? p.tasks.filter(x => x !== t) : [...p.tasks, t] 
-      }));
-
-      return html`
-        <div className="space-y-6 animate-in">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-black text-slate-800 uppercase">Agenda</h2>
-            <button onClick=${() => setShowForm(!showForm)} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase shadow-lg">
-              ${showForm ? 'Fechar' : '+ Novo'}
+        <div class="grid grid-cols-2 gap-4">
+            <button class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex flex-col items-center gap-2">
+                <i class="fas fa-calendar-alt text-emerald-400 text-xl"></i>
+                <span class="text-sm">Serviços</span>
             </button>
-          </div>
-
-          ${showForm && html`
-            <form onSubmit=${handleSubmit} className="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 space-y-4">
-              <input required placeholder="Cliente" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none" value=${formData.clientName} onChange=${e => setFormData({...formData, clientName: e.target.value})} />
-              <div className="grid grid-cols-2 gap-2">
-                <input type="number" className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm" value=${formData.totalValue} onChange=${e => setFormData({...formData, totalValue: Number(e.target.value)})} />
-                <input type="date" className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm" value=${formData.date} onChange=${e => setFormData({...formData, date: e.target.value})} />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                ${DEFAULT_TASKS.map(t => html`
-                  <button key=${t} type="button" onClick=${() => toggleTask(t)} className=${`text-[9px] px-2 py-1 rounded-lg border font-bold transition ${formData.tasks.includes(t) ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-500'}`}>
-                    ${t}
-                  </button>
-                `)}
-              </div>
-              <button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest">Agendar</button>
-            </form>
-          `}
-
-          <div className="space-y-4">
-            ${jobs.sort((a,b) => b.date.localeCompare(a.date)).map(j => html`
-              <div key=${j.id} className="bg-white p-6 rounded-3xl border border-slate-100 card-shadow flex justify-between items-center group">
-                <div className="flex gap-4 items-center">
-                  <div className=${`w-12 h-12 rounded-2xl flex items-center justify-center ${j.status === 'completed' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
-                    <i className=${`fas ${j.status === 'completed' ? 'fa-check' : 'fa-clock'}`}></i>
-                  </div>
-                  <div>
-                    <h4 className="font-black text-slate-800">${j.clientName}</h4>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase">${j.date} • ${j.startTime}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-black text-slate-900">${j.totalValue.toFixed(2)}€</p>
-                  <div className="flex gap-2 mt-2">
-                    ${j.status !== 'completed' && html`<button onClick=${() => onUpdateStatus(j.id, 'completed')} className="text-[9px] font-black uppercase text-emerald-600">Concluir</button>`}
-                    <button onClick=${() => onDelete(j.id)} className="text-[9px] font-black uppercase text-rose-500">Apagar</button>
-                  </div>
-                </div>
-              </div>
-            `)}
-          </div>
-        </div>
-      `;
-    };
-
-    const FinanceView = ({ expenses, onAdd }) => {
-      const [formData, setFormData] = useState({ description: '', amount: 0, date: new Date().toISOString().split('T')[0] });
-
-      const sub = (e) => {
-        e.preventDefault();
-        onAdd({ ...formData, id: Date.now().toString() });
-        setFormData({ ...formData, description: '', amount: 0 });
-      };
-
-      return html`
-        <div className="space-y-6 animate-in">
-          <h2 className="text-xl font-black text-slate-800 uppercase">Gastos Negócio</h2>
-          <form onSubmit=${sub} className="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 space-y-4">
-            <input required placeholder="Descrição" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm" value=${formData.description} onChange=${e => setFormData({...formData, description: e.target.value})} />
-            <div className="grid grid-cols-2 gap-2">
-              <input type="number" step="0.01" className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm" value=${formData.amount} onChange=${e => setFormData({...formData, amount: Number(e.target.value)})} />
-              <input type="date" className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm" value=${formData.date} onChange=${e => setFormData({...formData, date: e.target.value})} />
-            </div>
-            <button type="submit" className="w-full bg-rose-500 text-white py-4 rounded-2xl font-black uppercase">Gravar Despesa</button>
-          </form>
-
-          <div className="bg-white rounded-3xl border border-slate-100 card-shadow overflow-hidden">
-            <table className="w-full text-left">
-              <tbody className="divide-y divide-slate-50">
-                ${expenses.map(e => html`
-                  <tr key=${e.id}>
-                    <td className="px-6 py-4 text-xs font-bold text-slate-400">${e.date}</td>
-                    <td className="px-6 py-4 text-xs font-black text-slate-800">${e.description}</td>
-                    <td className="px-6 py-4 text-sm font-black text-rose-500 text-right">-${e.amount.toFixed(2)}€</td>
-                  </tr>
-                `)}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
-    };
-
-    const SettingsView = ({ settings, onUpdate, onSync }) => {
-      const [url, setUrl] = useState(settings.googleScriptUrl || '');
-
-      return html`
-        <div className="space-y-6 animate-in">
-          <div className="bg-white p-8 rounded-[2.5rem] card-shadow border border-slate-100">
-            <h2 className="text-xl font-black text-slate-800 uppercase mb-4">Cloud Google Sheets</h2>
-            <p className="text-[10px] text-slate-400 font-bold uppercase mb-4">Cole o URL da sua App Web para sincronizar dados.</p>
-            <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs font-mono mb-4" value=${url} onChange=${e => setUrl(e.target.value)} />
-            <button onClick=${() => onUpdate({...settings, googleScriptUrl: url})} className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase">Ligar Nuvem</button>
-          </div>
-          
-          <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white">
-            <h3 className="font-black uppercase tracking-widest text-xs mb-4">Manutenção</h3>
-            <button onClick=${onSync} disabled=${!settings.googleScriptUrl} className="w-full bg-white text-slate-900 py-4 rounded-2xl font-black uppercase text-[10px] disabled:opacity-30">
-              Sincronizar Agora
+            <button class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex flex-col items-center gap-2">
+                <i class="fas fa-wallet text-orange-400 text-xl"></i>
+                <span class="text-sm">Finanças</span>
             </button>
-          </div>
         </div>
-      `;
-    };
 
-    // --- MAIN APP ---
-    const App = () => {
-      const [view, setView] = useState('dashboard');
-      const [jobs, setJobs] = useState([]);
-      const [expenses, setExpenses] = useState([]);
-      const [settings, setSettings] = useState({ googleScriptUrl: '' });
-      const [syncing, setSyncing] = useState(false);
-
-      useEffect(() => {
-        setJobs(getStorage(STORAGE_KEYS.JOBS));
-        setExpenses(getStorage(STORAGE_KEYS.EXPENSES));
-        const s = getStorage(STORAGE_KEYS.SETTINGS, { googleScriptUrl: '' });
-        setSettings(s);
-
-        if (s.googleScriptUrl) {
-          fetch(s.googleScriptUrl).then(r => r.json()).then(d => {
-            if (d && d.jobs) {
-              setJobs(d.jobs); setExpenses(d.expenses || []);
-              setStorage(STORAGE_KEYS.JOBS, d.jobs); setStorage(STORAGE_KEYS.EXPENSES, d.expenses || []);
-            }
-          }).catch(() => {});
-        }
-      }, []);
-
-      const sync = async (upJ, upE) => {
-        const j = upJ || jobs;
-        const e = upE || expenses;
-        setStorage(STORAGE_KEYS.JOBS, j);
-        setStorage(STORAGE_KEYS.EXPENSES, e);
-
-        if (settings.googleScriptUrl) {
-          setSyncing(true);
-          try {
-            await fetch(settings.googleScriptUrl, {
-              method: 'POST', mode: 'no-cors',
-              body: JSON.stringify({ jobs: j, expenses: e, timestamp: new Date().toISOString() })
-            });
-            const s = { ...settings, lastBackupDate: new Date().toISOString() };
-            setSettings(s); setStorage(STORAGE_KEYS.SETTINGS, s);
-          } finally { setSyncing(false); }
-        }
-      };
-
-      const items = [
-        { id: 'dashboard', icon: 'fa-chart-pie', label: 'Início' },
-        { id: 'jobs', icon: 'fa-calendar-days', label: 'Agenda' },
-        { id: 'finance', icon: 'fa-wallet', label: 'Custos' },
-        { id: 'settings', icon: 'fa-cloud', label: 'Cloud' }
-      ];
-
-      return html`
-        <div className="min-h-screen flex flex-col md:flex-row pb-24 md:pb-0">
-          <aside className="hidden md:flex w-72 bg-slate-900 text-white p-10 flex-col shrink-0">
-            <h1 className="text-2xl font-black tracking-tighter uppercase mb-16">VerdeGest</h1>
-            <nav className="flex-1 space-y-3">
-              ${items.map(item => html`
-                <button key=${item.id} onClick=${() => setView(item.id)} className=${`w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] transition ${view === item.id ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:text-white'}`}>
-                  <i className=${`fas ${item.icon} mr-4 w-5`}></i> ${item.label}
-                </button>
-              `)}
-            </nav>
-          </aside>
-
-          <main className="flex-1 p-5 md:p-14 max-w-6xl mx-auto w-full">
-            <header className="mb-10 flex justify-between items-center md:hidden">
-              <h1 className="text-xl font-black tracking-tighter text-slate-900 uppercase">VerdeGest</h1>
-              <div className=${`px-4 py-1.5 rounded-full text-[8px] font-black uppercase ${syncing ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                ${syncing ? 'Sinc...' : 'Ok'}
-              </div>
-            </header>
-
-            ${view === 'dashboard' && html`<${DashboardView} jobs=${jobs} expenses=${expenses} />`}
-            ${view === 'jobs' && html`<${JobsView} jobs=${jobs} settings=${settings} onAdd=${j => { const up = [...jobs, j]; setJobs(up); sync(up, null); }} onDelete=${id => { const up = jobs.filter(x => x.id !== id); setJobs(up); sync(up, null); }} onUpdateStatus=${(id, s) => { const up = jobs.map(j => j.id === id ? {...j, status: s} : j); setJobs(up); sync(up, null); }} />`}
-            ${view === 'finance' && html`<${FinanceView} expenses=${expenses} onAdd=${e => { const up = [...expenses, e]; setExpenses(up); sync(null, up); }} />`}
-            ${view === 'settings' && html`<${SettingsView} settings=${settings} onUpdate=${s => { setSettings(s); setStorage(STORAGE_KEYS.SETTINGS, s); }} onSync=${() => sync()} />`}
-          </main>
-
-          <nav className="md:hidden fixed bottom-0 left-0 right-0 glass border-t border-slate-200 flex justify-around p-4 z-50 safe-area-bottom">
-            ${items.map(item => html`
-              <button key=${item.id} onClick=${() => setView(item.id)} className=${`flex flex-col items-center gap-1.5 transition ${view === item.id ? 'text-emerald-600' : 'text-slate-400'}`}>
-                <i className=${`fas ${item.icon} text-lg`}></i>
-                <span className="text-[8px] font-black uppercase tracking-tighter">${item.label}</span>
-              </button>
-            `)}
-          </nav>
+        <div class="mt-auto py-6 text-center opacity-50 text-xs">
+            <p>Ligado ao Google Sheets</p>
         </div>
-      `;
-    };
-
-    createRoot(document.getElementById('root')).render(React.createElement(App));
-  </script>
+    </div>
 </body>
 </html>
