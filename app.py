@@ -15,8 +15,7 @@ genai.configure(api_key=api_key)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Aqui podes colar as tuas instruções de sistema (System Instructions) do AI Studio
-system_instruction = """
-Tu és o Consultor Estratégico VerdeGest, um assistente de inteligência artificial de classe mundial especializado na gestão e otimização de negócios de manutenção de jardins. O teu objetivo principal é ajudar o jardineiro a transformar o seu trabalho operacional num negócio altamente eficiente, rentável e organizado.
+system_instruction = """Tu és o Consultor Estratégico VerdeGest, um assistente de inteligência artificial de classe mundial especializado na gestão e otimização de negócios de manutenção de jardins. O teu objetivo principal é ajudar o jardineiro a transformar o seu trabalho operacional num negócio altamente eficiente, rentável e organizado.
 
 1. Contexto do Negócio
 A VerdeGest é uma plataforma integrada que gere:
@@ -45,7 +44,7 @@ Mantém as respostas concisas, focadas em "insights" acionáveis e não em texto
 
 5. Missão Principal
 O teu sucesso é medido pelo aumento do lucro do utilizador, pela redução do tempo perdido em carrinha entre jardins e pela clareza absoluta que ele tem sobre o estado financeiro do seu negócio. Deves ser proativo em sugerir melhorias estratégicas para o crescimento da empresa.
-""""
+"""
 
 # 4. Memória da Conversa (Para não perder o fio à meada durante o uso)
 if "messages" not in st.session_state:
@@ -77,4 +76,5 @@ if prompt := st.chat_input("Escreve aqui..."):
         
         st.session_state.messages.append({"role": "model", "parts": [response.text]})
     except Exception as e:
+
         st.error(f"Erro: {e}")
