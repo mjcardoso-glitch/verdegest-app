@@ -1,0 +1,144 @@
+
+import React, { useRef, useState } from 'react';
+import { exportAllData, importAllData, markBackupDone } from '../utils/storage';
+import { downloadICS } from '../utils/calendar';
+import { Settings, Job } from '../types';
+
+interface Props {
+  settings: Settings;
+  onUpdateSettings: (settings: Settings) => void;
+  jobs: Job[];
+  onManualSync?: () => void;
+}
+
+const Backup: React.FC<Props> = ({ settings, onUpdateSettings, jobs, onManualSync }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [scriptUrl, setScriptUrl] = useState(settings.googleScriptUrl || '');
+
+  const handleSaveUrl = () => {
+    if (!scriptUrl.includes('script.google.com')) {
+      alert("Por favor, insira um URL válido do Google Apps Script.");
+      return;
+    }
+    onUpdateSettings({ ...settings, googleScriptUrl: scriptUrl });
+    alert("Ligação configurada! A app sincronizará automaticamente a partir de agora.");
+  };
+
+  const handleShareBackup = async () => {
+    const dataStr = exportAllData();
+    const fileName = `verdegest_backup.json`;
+    const file = new File([dataStr], fileName, { type: 'application/json' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'Cópia VerdeGest',
+          text: 'Dados de manutenção de jardins.',
+        });
+      } catch (err) {}
+    } else {
+      handleDownloadBackup();
+    }
+  };
+
+  const handleDownloadBackup = () => {
+    const data = exportAllData();
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `verdegest_backup.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="space-y-6 max-w-2xl mx-auto">
+      {/* Tutorial Rápido */}
+      <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm">
+        <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Como ligar à sua Folha de Cálculo?</h3>
+        <ol className="text-xs text-slate-600 space-y-3 list-decimal pl-4">
+          <li>Crie uma <b>Google Sheet</b> e vá a <i>Extensões > Apps Script</i>.</li>
+          <li>Cole o código fornecido pelo assistente e clique em <b>Implementar</b>.</li>
+          <li>Escolha <b>Aplicação Web</b> e acesso para <b>"Qualquer pessoa"</b>.</li>
+          <li>Copie o URL gerado e cole-o no campo abaixo.</li>
+        </ol>
+      </div>
+
+      {/* Configuração Google Sheets */}
+      <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-3xl shadow-sm space-y-4">
+        <h3 className="text-sm font-black text-emerald-800 uppercase tracking-widest flex items-center gap-2">
+          <i className="fab fa-google-drive text-emerald-500"></i>
+          Link de Sincronização Real
+        </h3>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input 
+            type="text" 
+            placeholder="Cole aqui o URL (https://script.google.com/...)"
+            className="flex-1 bg-white border border-emerald-200 rounded-xl px-4 py-3 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+            value={scriptUrl}
+            onChange={(e) => setScriptUrl(e.target.value)}
+          />
+          <button 
+            onClick={handleSaveUrl}
+            className="bg-emerald-600 text-white font-black px-6 py-3 rounded-xl text-xs uppercase hover:bg-emerald-700 transition shadow-lg shadow-emerald-600/20"
+          >
+            Ligar Agora
+          </button>
+        </div>
+      </div>
+
+      {/* Painel de Status */}
+      <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white relative overflow-hidden shadow-2xl border border-slate-800">
+        <div className="relative z-10">
+          <div className="flex justify-between items-start mb-8">
+            <div>
+              <h2 className="text-2xl font-black uppercase tracking-tight mb-1">
+                Servidor <span className="text-emerald-500">Activo</span>
+              </h2>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Estado da Sincronização Google</p>
+            </div>
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${settings.googleScriptUrl ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
+              <div className={`w-2 h-2 rounded-full ${settings.googleScriptUrl ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`}></div>
+              <span className="text-[9px] font-black uppercase">
+                {settings.googleScriptUrl ? 'Cloud Online' : 'Cloud Offline'}
+              </span>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+              <p className="text-[10px] text-slate-500 font-black uppercase mb-1">Última Escrita</p>
+              <p className="text-sm font-bold">{settings.lastBackupDate ? new Date(settings.lastBackupDate).toLocaleTimeString() : 'Pendente'}</p>
+            </div>
+            <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+              <p className="text-[10px] text-slate-500 font-black uppercase mb-1">Modo</p>
+              <p className="text-sm font-bold text-emerald-400">AUTO-SAVE</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <button 
+              onClick={onManualSync}
+              disabled={!settings.googleScriptUrl}
+              className={`flex-1 font-black py-4 rounded-2xl transition-all shadow-lg text-xs uppercase ${settings.googleScriptUrl ? 'bg-white text-slate-900 hover:bg-emerald-50' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}
+            >
+              <i className="fas fa-sync-alt mr-2"></i> Forçar Sincronização
+            </button>
+            <button 
+              onClick={handleShareBackup}
+              className="flex-1 bg-slate-800 text-white font-black py-4 rounded-2xl transition-all border border-slate-700 text-xs uppercase hover:bg-slate-700"
+            >
+              <i className="fas fa-download mr-2"></i> Backup Manual
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Backup;
