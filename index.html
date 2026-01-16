@@ -1,7 +1,549 @@
 <!DOCTYPE html>
-<html>
-<head><title>Teste</title></head>
-<body>
-    <h1 style="color: green;">Se consegues ler isto, o GitHub está a funcionar!</h1>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+  <title>VerdeGest Pro - Gestão de Jardins</title>
+  
+  <!-- Meta & PWA -->
+  <meta name="theme-color" content="#065f46">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <!-- CDNs -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    :root { --safe-area-inset-bottom: env(safe-area-inset-bottom); }
+    body { 
+      font-family: 'Inter', sans-serif; 
+      background-color: #f8fafc; 
+      overscroll-behavior-y: contain; 
+      color: #1e293b;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .safe-area-bottom { padding-bottom: calc(0.5rem + var(--safe-area-inset-bottom)); }
+    .view { display: none; }
+    .view.active { display: block; animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .card-shadow { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.02); }
+    input, select, textarea { font-size: 16px !important; }
+    .nav-btn.active { background-color: #10b981; color: white; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
+    .mobile-nav-btn.active { color: #10b981; transform: scale(1.1); font-weight: 900; }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
+    "recharts": "https://esm.sh/recharts@^3.6.0"
+  }
+}
+</script>
+</head>
+<body class="selection:bg-emerald-100 selection:text-emerald-900">
+
+  <div class="min-h-screen flex flex-col md:flex-row pb-24 md:pb-0">
+    <!-- Sidebar Desktop -->
+    <aside class="hidden md:flex w-72 bg-slate-900 text-white p-10 flex-col shrink-0 shadow-2xl">
+      <div class="flex items-center gap-4 mb-16">
+        <div class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white text-xl">
+          <i class="fas fa-leaf"></i>
+        </div>
+        <h1 class="text-2xl font-black tracking-tighter uppercase">VerdeGest</h1>
+      </div>
+      <nav class="flex-1 space-y-3">
+        <button onclick="switchView('dashboard')" class="nav-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all text-slate-500 hover:text-white hover:bg-white/5 active" id="btn-dashboard">
+          <i class="fas fa-chart-pie mr-4 w-5"></i> Início
+        </button>
+        <button onclick="switchView('jobs')" class="nav-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all text-slate-500 hover:text-white hover:bg-white/5" id="btn-jobs">
+          <i class="fas fa-calendar-alt mr-4 w-5"></i> Agenda
+        </button>
+        <button onclick="switchView('finance')" class="nav-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all text-slate-500 hover:text-white hover:bg-white/5" id="btn-finance">
+          <i class="fas fa-wallet mr-4 w-5"></i> Gastos
+        </button>
+        <button onclick="switchView('settings')" class="nav-btn w-full flex items-center p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all text-slate-500 hover:text-white hover:bg-white/5" id="btn-settings">
+          <i class="fas fa-cloud mr-4 w-5"></i> Nuvem
+        </button>
+      </nav>
+      <div class="mt-auto flex items-center gap-3 px-2">
+        <div id="sync-indicator" class="w-2 h-2 rounded-full bg-emerald-500"></div>
+        <span id="sync-text" class="text-[9px] font-black uppercase text-slate-500 tracking-widest">Local</span>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-5 md:p-14 max-w-6xl mx-auto w-full overflow-y-auto">
+      <!-- Mobile Header -->
+      <header class="mb-10 flex justify-between items-center md:hidden">
+        <div class="flex items-center gap-2">
+           <i class="fas fa-leaf text-emerald-600 text-xl"></i>
+           <h1 class="text-xl font-black tracking-tighter text-slate-900 uppercase">VerdeGest</h1>
+        </div>
+        <div id="mobile-sync-badge" class="px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700">OK</div>
+      </header>
+
+      <!-- View: Dashboard -->
+      <section id="view-dashboard" class="view active">
+        <div class="space-y-6">
+          <div class="bg-gradient-to-br from-emerald-600 to-emerald-800 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
+            <div class="relative z-10">
+              <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Saldo Líquido</p>
+              <h2 id="dash-balance" class="text-5xl font-black mt-2 tracking-tighter">0.00€</h2>
+              <div class="flex gap-4 mt-8">
+                <div class="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/5 flex-1">
+                  <p class="text-[9px] font-black opacity-60 uppercase">Facturado</p>
+                  <p id="dash-income" class="text-lg font-black">0.00€</p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/5 flex-1">
+                  <p class="text-[9px] font-black opacity-60 uppercase">Gastos</p>
+                  <p id="dash-cost" class="text-lg font-black text-rose-200">0.00€</p>
+                </div>
+              </div>
+            </div>
+            <i class="fas fa-leaf absolute -right-10 -bottom-10 text-[12rem] opacity-5 rotate-12"></i>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-[2rem] border border-slate-100 card-shadow">
+              <h3 class="text-[10px] font-black uppercase text-slate-400 mb-6 flex items-center gap-2">
+                <i class="fas fa-chart-bar"></i> Performance
+              </h3>
+              <div class="h-64 relative">
+                <canvas id="mainChart"></canvas>
+              </div>
+            </div>
+            <div class="bg-slate-900 p-8 rounded-[2rem] text-white shadow-xl flex flex-col justify-center">
+              <h3 class="text-[10px] font-black uppercase text-emerald-500 mb-6 tracking-widest">Estado de Hoje</h3>
+              <div class="space-y-4">
+                <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
+                  <span class="text-xs font-bold text-slate-400">Trabalhos Agendados</span>
+                  <span id="dash-jobs-count" class="text-xl font-black">0</span>
+                </div>
+                <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
+                  <span class="text-xs font-bold text-slate-400">Dívidas Pendentes</span>
+                  <span id="dash-debt-count" class="text-xl font-black text-rose-400">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Jobs -->
+      <section id="view-jobs" class="view">
+        <div class="space-y-6">
+          <div class="flex justify-between items-center">
+            <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Folha de Tempos</h2>
+            <button onclick="toggleForm('job-form')" class="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-emerald-600/20 active:scale-95 transition-all">
+              + Novo Serviço
+            </button>
+          </div>
+
+          <!-- Form: Job -->
+          <div id="job-form" class="hidden animate-in">
+            <form id="form-add-job" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-1">
+                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Cliente</label>
+                  <input required id="in-client" placeholder="Ex: Sr. Manuel" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition">
+                </div>
+                <div class="space-y-1">
+                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Preço (€)</label>
+                  <input type="number" step="0.5" id="in-price" value="30" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition">
+                </div>
+                <div class="space-y-1">
+                  <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Data</label>
+                  <input type="date" id="in-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Início</label>
+                    <input type="time" id="in-start" value="09:00" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Fim</label>
+                    <input type="time" id="in-end" value="10:30" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
+                  </div>
+                </div>
+              </div>
+              <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-black shadow-lg">Confirmar Registo</button>
+            </form>
+          </div>
+
+          <div id="jobs-list" class="space-y-4">
+            <!-- Jobs will be injected here -->
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Finance -->
+      <section id="view-finance" class="view">
+        <div class="space-y-6">
+          <div class="flex justify-between items-center">
+            <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Custos Operacionais</h2>
+            <button onclick="toggleForm('expense-form')" class="bg-rose-500 text-white px-6 py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-rose-500/20 active:scale-95 transition-all">
+              + Registar Gasto
+            </button>
+          </div>
+
+          <div id="expense-form" class="hidden animate-in">
+            <form id="form-add-expense" class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 space-y-4">
+              <input required id="in-exp-desc" placeholder="Ex: Gasolina, Sementes" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm outline-none">
+              <div class="grid grid-cols-2 gap-4">
+                <input type="number" step="0.01" id="in-exp-amount" placeholder="0.00€" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm">
+                <input type="date" id="in-exp-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm">
+              </div>
+              <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg">Gravar Despesa</button>
+            </form>
+          </div>
+
+          <div class="bg-white rounded-[2rem] border border-slate-100 card-shadow overflow-hidden">
+            <table class="w-full text-left">
+              <thead class="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-400">Data</th>
+                  <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-400">Descrição</th>
+                  <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-400 text-right">Valor</th>
+                </tr>
+              </thead>
+              <tbody id="expenses-table-body" class="divide-y divide-slate-50">
+                <!-- Expenses will be injected here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Settings -->
+      <section id="view-settings" class="view">
+        <div class="space-y-6">
+          <div class="bg-white p-8 rounded-[2.5rem] card-shadow border border-slate-100">
+            <h2 class="text-xl font-black text-slate-800 uppercase mb-4 flex items-center gap-2">
+              <i class="fas fa-cloud-arrow-up text-emerald-500"></i> Cloud Sincronização
+            </h2>
+            <p class="text-[10px] text-slate-400 font-bold uppercase mb-4">Cole o seu URL do Google Apps Script:</p>
+            <div class="space-y-4">
+              <input id="in-settings-url" type="text" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs font-mono outline-none focus:ring-2 focus:ring-emerald-500">
+              <button onclick="saveSettings()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-emerald-600/20 active:scale-95 transition-all">
+                Ligar Nuvem e Salvar
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
+             <div class="relative z-10">
+                <h3 class="font-black uppercase tracking-widest text-xs mb-6">Backup de Emergência</h3>
+                <div class="flex flex-col sm:flex-row gap-4">
+                   <button onclick="syncNow()" class="flex-1 bg-white text-slate-900 py-4 rounded-2xl font-black uppercase text-[10px] hover:bg-emerald-50 transition active:scale-95">
+                      Sincronizar Agora
+                   </button>
+                   <button onclick="exportData()" class="flex-1 bg-slate-800 text-white py-4 rounded-2xl font-black uppercase text-[10px] border border-white/10 active:scale-95">
+                      Exportar JSON
+                   </button>
+                </div>
+             </div>
+             <i class="fas fa-database absolute -right-8 -bottom-8 text-[12rem] opacity-5"></i>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 glass border-t border-slate-200 flex justify-around p-4 z-50 safe-area-bottom shadow-2xl">
+      <button onclick="switchView('dashboard')" class="mobile-nav-btn flex flex-col items-center gap-1.5 px-3 py-1 transition-all text-slate-400 active" id="mbtn-dashboard">
+        <i class="fas fa-chart-pie text-lg"></i>
+        <span class="text-[8px] font-black uppercase tracking-tighter">Início</span>
+      </button>
+      <button onclick="switchView('jobs')" class="mobile-nav-btn flex flex-col items-center gap-1.5 px-3 py-1 transition-all text-slate-400" id="mbtn-jobs">
+        <i class="fas fa-calendar-alt text-lg"></i>
+        <span class="text-[8px] font-black uppercase tracking-tighter">Agenda</span>
+      </button>
+      <button onclick="switchView('finance')" class="mobile-nav-btn flex flex-col items-center gap-1.5 px-3 py-1 transition-all text-slate-400" id="mbtn-finance">
+        <i class="fas fa-wallet text-lg"></i>
+        <span class="text-[8px] font-black uppercase tracking-tighter">Gastos</span>
+      </button>
+      <button onclick="switchView('settings')" class="mobile-nav-btn flex flex-col items-center gap-1.5 px-3 py-1 transition-all text-slate-400" id="mbtn-settings">
+        <i class="fas fa-cloud text-lg"></i>
+        <span class="text-[8px] font-black uppercase tracking-tighter">Nuvem</span>
+      </button>
+    </nav>
+  </div>
+
+  <script>
+    // --- STATE ---
+    let state = {
+      jobs: JSON.parse(localStorage.getItem('vg_jobs')) || [],
+      expenses: JSON.parse(localStorage.getItem('vg_exp')) || [],
+      settings: JSON.parse(localStorage.getItem('vg_set')) || { googleScriptUrl: '' }
+    };
+
+    let chartInstance = null;
+
+    // --- INITIALIZE ---
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('in-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('in-exp-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('in-settings-url').value = state.settings.googleScriptUrl || '';
+      
+      renderAll();
+      initChart();
+    });
+
+    // --- NAVIGATION ---
+    function switchView(viewName) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-' + viewName).classList.add('active');
+
+      document.querySelectorAll('.nav-btn, .mobile-nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('btn-' + viewName).classList.add('active');
+      document.getElementById('mbtn-' + viewName).classList.add('active');
+
+      if(viewName === 'dashboard') renderDashboard();
+    }
+
+    function toggleForm(id) {
+      document.getElementById(id).classList.toggle('hidden');
+    }
+
+    // --- LOGIC ---
+    function renderAll() {
+      renderDashboard();
+      renderJobs();
+      renderExpenses();
+      updateSyncStatus('Local');
+    }
+
+    function renderDashboard() {
+      const completed = state.jobs.filter(j => j.status === 'completed');
+      const income = completed.reduce((s, j) => s + (Number(j.totalValue) || 0), 0);
+      const cost = state.expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      const balance = income - cost;
+
+      document.getElementById('dash-balance').innerText = balance.toFixed(2) + '€';
+      document.getElementById('dash-income').innerText = income.toFixed(2) + '€';
+      document.getElementById('dash-cost').innerText = cost.toFixed(2) + '€';
+      document.getElementById('dash-jobs-count').innerText = state.jobs.filter(j => j.status !== 'completed').length;
+      document.getElementById('dash-debt-count').innerText = state.jobs.filter(j => j.paymentStatus === 'unpaid' && j.status === 'completed').length;
+
+      updateChart(income, cost);
+    }
+
+    function renderJobs() {
+      const list = document.getElementById('jobs-list');
+      list.innerHTML = '';
+
+      if (state.jobs.length === 0) {
+        list.innerHTML = `<div class="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
+                <i class="fas fa-calendar-day text-slate-200 text-5xl mb-4"></i>
+                <p class="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Sem serviços registados</p>
+              </div>`;
+        return;
+      }
+
+      state.jobs.sort((a,b) => b.date.localeCompare(a.date)).forEach(j => {
+        const div = document.createElement('div');
+        div.className = "bg-white p-6 rounded-[2rem] border border-slate-100 card-shadow flex justify-between items-center group hover:border-emerald-200 transition-all";
+        div.innerHTML = `
+                <div class="flex gap-4 items-center">
+                  <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl ${j.status === 'completed' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}">
+                    <i class="fas ${j.status === 'completed' ? 'fa-circle-check' : 'fa-clock'}"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-black text-slate-800 text-lg leading-tight">${j.clientName}</h4>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">${j.date} • ${j.startTime}</p>
+                    <div class="flex gap-2 mt-2">
+                      <span class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${j.paymentStatus === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}">
+                        ${j.paymentStatus === 'paid' ? 'Pago' : 'Dívida'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div class="text-right flex flex-col items-end gap-2">
+                  <p class="font-black text-slate-900 text-xl tracking-tight">${Number(j.totalValue).toFixed(2)}€</p>
+                  <div class="flex gap-2">
+                    ${j.status !== 'completed' ? `<button onclick="updateJobStatus('${j.id}', 'completed')" class="text-[9px] font-black uppercase text-emerald-600 hover:underline">Concluir</button>` : ''}
+                    ${j.status === 'completed' && j.paymentStatus === 'unpaid' ? `<button onclick="updateJobPayment('${j.id}', 'paid')" class="text-[9px] font-black uppercase text-emerald-600 hover:underline">Marcar Pago</button>` : ''}
+                    <button onclick="deleteJob('${j.id}')" class="text-[9px] font-black uppercase text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">Eliminar</button>
+                  </div>
+                </div>`;
+        list.appendChild(div);
+      });
+    }
+
+    function renderExpenses() {
+      const tbody = document.getElementById('expenses-table-body');
+      tbody.innerHTML = '';
+
+      if (state.expenses.length === 0) {
+        tbody.innerHTML = `<tr><td colSpan="3" class="px-6 py-10 text-center text-slate-400 text-xs italic">Sem gastos registados</td></tr>`;
+        return;
+      }
+
+      state.expenses.sort((a,b) => b.date.localeCompare(a.date)).forEach(e => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition";
+        tr.innerHTML = `
+                    <td class="px-6 py-4 text-xs font-bold text-slate-400">${e.date}</td>
+                    <td class="px-6 py-4 text-xs font-black text-slate-800 uppercase">${e.description}</td>
+                    <td class="px-6 py-4 text-sm font-black text-rose-500 text-right">-${Number(e.amount).toFixed(2)}€</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --- CHART ---
+    function initChart() {
+      const ctx = document.getElementById('mainChart').getContext('2d');
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Facturado', 'Custos'],
+          datasets: [{
+            data: [0, 0],
+            backgroundColor: ['#10b981', '#f43f5e'],
+            borderRadius: 12,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { display: false }, ticks: { display: false } },
+            x: { grid: { display: false }, ticks: { font: { weight: '800', size: 10 } } }
+          }
+        }
+      });
+    }
+
+    function updateChart(income, cost) {
+      if(!chartInstance) return;
+      chartInstance.data.datasets[0].data = [income, cost];
+      chartInstance.update();
+    }
+
+    // --- ACTIONS ---
+    document.getElementById('form-add-job').onsubmit = (e) => {
+      e.preventDefault();
+      const job = {
+        id: Date.now().toString(),
+        clientName: document.getElementById('in-client').value,
+        totalValue: document.getElementById('in-price').value,
+        date: document.getElementById('in-date').value,
+        startTime: document.getElementById('in-start').value,
+        endTime: document.getElementById('in-end').value,
+        status: 'scheduled',
+        paymentStatus: 'unpaid'
+      };
+      state.jobs.push(job);
+      saveAndSync();
+      document.getElementById('form-add-job').reset();
+      toggleForm('job-form');
+    };
+
+    document.getElementById('form-add-expense').onsubmit = (e) => {
+      e.preventDefault();
+      const expense = {
+        id: Date.now().toString(),
+        description: document.getElementById('in-exp-desc').value,
+        amount: document.getElementById('in-exp-amount').value,
+        date: document.getElementById('in-exp-date').value
+      };
+      state.expenses.push(expense);
+      saveAndSync();
+      document.getElementById('form-add-expense').reset();
+      toggleForm('expense-form');
+    };
+
+    function updateJobStatus(id, status) {
+      state.jobs = state.jobs.map(j => j.id === id ? { ...j, status } : j);
+      saveAndSync();
+    }
+
+    function updateJobPayment(id, paymentStatus) {
+      state.jobs = state.jobs.map(j => j.id === id ? { ...j, paymentStatus } : j);
+      saveAndSync();
+    }
+
+    function deleteJob(id) {
+      if(!confirm('Apagar serviço?')) return;
+      state.jobs = state.jobs.filter(j => j.id !== id);
+      saveAndSync();
+    }
+
+    function saveSettings() {
+      state.settings.googleScriptUrl = document.getElementById('in-settings-url').value;
+      localStorage.setItem('vg_set', JSON.stringify(state.settings));
+      syncNow();
+    }
+
+    function saveAndSync() {
+      localStorage.setItem('vg_jobs', JSON.stringify(state.jobs));
+      localStorage.setItem('vg_exp', JSON.stringify(state.expenses));
+      renderAll();
+      syncNow();
+    }
+
+    async function syncNow() {
+      if (!state.settings.googleScriptUrl) return;
+      
+      updateSyncStatus('Sync...');
+      
+      try {
+        const payload = JSON.stringify({
+          jobs: state.jobs,
+          expenses: state.expenses,
+          timestamp: new Date().toISOString()
+        });
+
+        // Using no-cors as Apps Script usually handles this better for simple web apps
+        await fetch(state.settings.googleScriptUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: payload
+        });
+
+        updateSyncStatus('Cloud OK');
+      } catch (e) {
+        updateSyncStatus('Offline');
+        console.error('Sync error:', e);
+      }
+    }
+
+    function updateSyncStatus(text) {
+      const dot = document.getElementById('sync-indicator');
+      const badge = document.getElementById('mobile-sync-badge');
+      const label = document.getElementById('sync-text');
+
+      label.innerText = text;
+      badge.innerText = text;
+
+      if(text === 'Cloud OK' || text === 'Local') {
+        dot.className = "w-2 h-2 rounded-full bg-emerald-500";
+        badge.className = "px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700";
+      } else if(text === 'Sync...') {
+        dot.className = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
+        badge.className = "px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-amber-100 text-amber-700";
+      } else {
+        dot.className = "w-2 h-2 rounded-full bg-rose-500";
+        badge.className = "px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-rose-100 text-rose-700";
+      }
+    }
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify(state)], {type: 'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'verdegest_backup.json';
+      a.click();
+    }
+  </script>
 </body>
 </html>
