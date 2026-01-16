@@ -45,4 +45,40 @@ Utiliza emojis de forma pertinente para tornar a leitura visualmente apelativa e
 Mantém as respostas concisas, focadas em "insights" acionáveis e não em texto genérico.
 
 5. Missão Principal
-O teu sucesso é medido pelo aumento do lucro do utilizador, pela redução do tempo perdido em
+O teu sucesso é medido pelo aumento do lucro do utilizador, pela redução do tempo perdido em carrinha entre jardins e pela clareza absoluta que ele tem sobre o estado financeiro do seu negócio. Deves ser proativo em sugerir melhorias estratégicas para o crescimento da empresa.
+"""
+
+# 4. Memória da Conversa
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "model", "parts": [system_instruction]} 
+    ]
+
+# 5. Mostrar o Chat
+for message in st.session_state.messages:
+    # Apenas mostramos as mensagens visíveis (ignoramos a instrução de sistema inicial)
+    if message["role"] != "model" or message["parts"][0] != system_instruction:
+        with st.chat_message(message["role"]):
+            st.markdown(message["parts"][0])
+
+# 6. Caixa de Texto para o Utilizador
+if prompt := st.chat_input("Escreve aqui..."):
+    # Guardar e mostrar mensagem do utilizador
+    st.session_state.messages.append({"role": "user", "parts": [prompt]})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # Gerar resposta
+    try:
+        # Criamos o chat enviando o histórico (mas limpando a system instruction da lista direta se necessário, 
+        # embora o Gemini geralmente lide bem com isso, vamos enviar o histórico completo)
+        chat = model.start_chat(history=st.session_state.messages)
+        response = chat.send_message(prompt)
+        
+        # Mostrar resposta do AI
+        with st.chat_message("model"):
+            st.markdown(response.text)
+        
+        st.session_state.messages.append({"role": "model", "parts": [response.text]})
+    except Exception as e:
+        st.error(f"Erro: {e}")
