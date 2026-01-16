@@ -1,104 +1,429 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VerdeGest Pro</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+  <title>VerdeGest Pro - Gestão de Jardins</title>
+  
+  <!-- Estilos e Fontes -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; -webkit-tap-highlight-color: transparent; }
+    .view { display: none; }
+    .view.active { display: block; animation: fadeIn 0.2s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+    
+    /* Toggle Switch Personalizado */
+    .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 20px; }
+    .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: #10b981; }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    .nav-btn.active { color: #10b981; }
+    .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05); }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
+    "recharts": "https://esm.sh/recharts@^3.6.0"
+  }
+}
+</script>
 </head>
-<body class="bg-slate-900 text-white font-sans">
+<body class="pb-20">
 
-    <div class="max-w-md mx-auto min-h-screen flex flex-col p-4">
-        <header class="flex justify-between items-center py-4">
-            <h1 class="text-2xl font-bold text-emerald-500">VerdeGest</h1>
-            <button onclick="abrirConfig()" class="text-slate-400"><i class="fas fa-cog text-xl"></i></button>
-        </header>
-
-        <div class="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-6 mb-6 shadow-xl">
-            <p class="text-emerald-100 text-sm">Bem-vindo ao teu dashboard,</p>
-            <h2 class="text-2xl font-bold mb-4">Gestor VerdeGest</h2>
-            <div class="flex gap-4 text-center">
-                <div class="bg-white/10 p-3 rounded-2xl flex-1">
-                    <p class="text-[10px] uppercase opacity-70">Trabalhos</p>
-                    <p id="totalJobs" class="text-xl font-bold">0</p>
-                </div>
-                <div class="bg-white/10 p-3 rounded-2xl flex-1">
-                    <p class="text-[10px] uppercase opacity-70">Estado Nuvem</p>
-                    <p id="cloudStatus" class="text-xs font-bold text-orange-300">OFFLINE</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-slate-800 rounded-2xl p-4 mb-6 border border-slate-700">
-            <h3 class="text-sm font-bold mb-3">Registar Serviço</h3>
-            <input id="cliente" type="text" placeholder="Nome do Cliente" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 mb-2 text-sm">
-            <button onclick="salvarServico()" class="w-full bg-emerald-500 hover:bg-emerald-600 font-bold py-2 rounded-lg transition">Gravar</button>
-        </div>
-
-        <div id="listaServicos" class="flex-1 overflow-y-auto space-y-2">
-            </div>
-
-        <div id="modalConfig" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-6">
-            <div class="bg-slate-800 p-6 rounded-3xl w-full max-w-sm border border-slate-700">
-                <h2 class="text-xl font-bold mb-4">Configuração Nuvem</h2>
-                <p class="text-xs text-slate-400 mb-2">Cola o URL do Apps Script:</p>
-                <input id="urlScript" type="text" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 mb-4 text-xs">
-                <div class="flex gap-2">
-                    <button onclick="fecharConfig()" class="flex-1 bg-slate-700 py-2 rounded-lg">Fechar</button>
-                    <button onclick="guardarURL()" class="flex-1 bg-emerald-500 py-2 rounded-lg font-bold">Ligar</button>
-                </div>
-            </div>
-        </div>
+  <!-- Sidebar Desktop -->
+  <div class="hidden md:flex fixed left-0 top-0 h-full w-64 bg-slate-900 text-white p-6 flex-col">
+    <div class="flex items-center gap-3 mb-10">
+      <i class="fas fa-leaf text-emerald-500 text-2xl"></i>
+      <h1 class="text-xl font-black tracking-tighter uppercase">VerdeGest</h1>
     </div>
+    <nav class="space-y-1 flex-1">
+      <button onclick="showView('dashboard')" class="w-full flex items-center p-3 rounded-xl hover:bg-slate-800 font-bold uppercase text-[10px] tracking-widest transition-all">
+        <i class="fas fa-chart-pie mr-3 w-5"></i> Dashboard
+      </button>
+      <button onclick="showView('agenda')" class="w-full flex items-center p-3 rounded-xl hover:bg-slate-800 font-bold uppercase text-[10px] tracking-widest transition-all">
+        <i class="fas fa-calendar-alt mr-3 w-5"></i> Agenda
+      </button>
+      <button onclick="showView('negocio')" class="w-full flex items-center p-3 rounded-xl hover:bg-slate-800 font-bold uppercase text-[10px] tracking-widest transition-all">
+        <i class="fas fa-wallet mr-3 w-5"></i> Negócio
+      </button>
+      <button onclick="showView('pessoal')" class="w-full flex items-center p-3 rounded-xl hover:bg-slate-800 font-bold uppercase text-[10px] tracking-widest transition-all">
+        <i class="fas fa-user-shield mr-3 w-5"></i> Pessoal
+      </button>
+      <button onclick="showView('config')" class="w-full flex items-center p-3 rounded-xl hover:bg-slate-800 font-bold uppercase text-[10px] tracking-widest transition-all">
+        <i class="fas fa-cloud mr-3 w-5"></i> Cloud
+      </button>
+    </nav>
+  </div>
 
-    <script>
-        let db = JSON.parse(localStorage.getItem('verdegest_db')) || [];
-        let scriptURL = localStorage.getItem('verdegest_url') || "";
+  <!-- Main Content -->
+  <main class="md:ml-64 p-4 md:p-10 max-w-5xl mx-auto">
+    
+    <!-- Mobile Header -->
+    <header class="md:hidden flex justify-between items-center mb-6">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-leaf text-emerald-600 text-xl"></i>
+        <h1 class="text-lg font-black uppercase tracking-tighter">VerdeGest</h1>
+      </div>
+      <div id="sync-indicator" class="px-3 py-1 bg-white rounded-full border border-slate-200 text-[8px] font-black uppercase tracking-widest text-slate-400">
+        Local
+      </div>
+    </header>
 
-        function render() {
-            const lista = document.getElementById('listaServicos');
-            lista.innerHTML = db.map((s, i) => `
-                <div class="bg-slate-800 p-3 rounded-xl border-l-4 border-emerald-500 flex justify-between">
-                    <span>${s.cliente}</span>
-                    <span class="text-xs opacity-50">${s.data}</span>
-                </div>
-            `).join('');
-            document.getElementById('totalJobs').innerText = db.length;
-            document.getElementById('cloudStatus').innerText = scriptURL ? "ONLINE" : "OFFLINE";
-            document.getElementById('cloudStatus').className = scriptURL ? "text-xs font-bold text-emerald-400" : "text-xs font-bold text-orange-300";
+    <!-- VIEW: DASHBOARD -->
+    <section id="view-dashboard" class="view active space-y-6">
+      <div class="bg-gradient-to-br from-emerald-600 to-teal-700 p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
+        <p class="text-[10px] font-black uppercase tracking-widest opacity-60">Faturação do Mês</p>
+        <h2 id="dash-total" class="text-4xl font-black mt-2">0.00€</h2>
+        <div class="grid grid-cols-2 gap-4 mt-8">
+          <div class="bg-white/10 p-4 rounded-2xl border border-white/5">
+            <p class="text-[9px] font-black uppercase opacity-60">Pendentes</p>
+            <p id="dash-pending" class="text-lg font-bold">0</p>
+          </div>
+          <div class="bg-white/10 p-4 rounded-2xl border border-white/5">
+            <p class="text-[9px] font-black uppercase opacity-60">Em Dívida</p>
+            <p id="dash-debt" class="text-lg font-bold">0.00€</p>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-white p-6 rounded-[2rem] border border-slate-100 card-shadow">
+          <h3 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">Resumo Negócio</h3>
+          <div class="flex justify-between items-center py-2 border-b border-slate-50">
+            <span class="text-xs font-medium">Entradas</span>
+            <span id="res-income" class="text-xs font-black text-emerald-600">0.00€</span>
+          </div>
+          <div class="flex justify-between items-center py-2">
+            <span class="text-xs font-medium">Gastos</span>
+            <span id="res-expense" class="text-xs font-black text-rose-500">0.00€</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW: AGENDA -->
+    <section id="view-agenda" class="view space-y-6">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xl font-black uppercase tracking-tighter">Agenda</h2>
+        <button onclick="toggleForm('job-form')" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg">Novo Serviço</button>
+      </div>
+
+      <div id="job-form" class="hidden bg-white p-6 rounded-[2rem] shadow-xl border border-slate-100 space-y-4">
+        <input id="j-client" placeholder="Nome do Cliente" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none">
+        <div class="grid grid-cols-2 gap-3">
+          <input type="date" id="j-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs outline-none">
+          <input type="number" id="j-value" placeholder="Valor €" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none">
+        </div>
+        <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <span class="text-[10px] font-black uppercase text-slate-400">Já foi pago?</span>
+          <label class="switch">
+            <input type="checkbox" id="j-paid">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <button onclick="saveJob()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-black uppercase text-[10px] tracking-widest">Gravar Serviço</button>
+      </div>
+
+      <div id="jobs-list" class="space-y-3"></div>
+    </section>
+
+    <!-- VIEW: NEGÓCIO -->
+    <section id="view-negocio" class="view space-y-6">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xl font-black uppercase tracking-tighter">Gastos Negócio</h2>
+        <button onclick="toggleForm('exp-form')" class="bg-rose-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg">Novo Gasto</button>
+      </div>
+      <div id="exp-form" class="hidden bg-white p-6 rounded-[2rem] shadow-xl border border-slate-100 space-y-4">
+        <input id="e-desc" placeholder="Descrição (Ex: Gasóleo)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none">
+        <div class="grid grid-cols-2 gap-3">
+          <input type="date" id="e-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs outline-none">
+          <input type="number" id="e-value" placeholder="Valor €" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none">
+        </div>
+        <button onclick="saveExpense()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-black uppercase text-[10px] tracking-widest">Gravar Despesa</button>
+      </div>
+      <div id="expenses-list" class="space-y-3"></div>
+    </section>
+
+    <!-- VIEW: PESSOAL -->
+    <section id="view-pessoal" class="view space-y-6">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xl font-black uppercase tracking-tighter">Gastos Pessoais</h2>
+        <button onclick="toggleForm('pers-form')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg">Novo Gasto</button>
+      </div>
+      <div id="pers-form" class="hidden bg-white p-6 rounded-[2rem] shadow-xl border border-slate-100 space-y-4">
+        <input id="p-desc" placeholder="Descrição (Ex: Rendas)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none">
+        <div class="grid grid-cols-2 gap-3">
+          <input type="date" id="p-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs outline-none">
+          <input type="number" id="p-value" placeholder="Valor €" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none">
+        </div>
+        <button onclick="savePersonal()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-black uppercase text-[10px] tracking-widest">Gravar Pessoal</button>
+      </div>
+      <div id="personal-list" class="space-y-3"></div>
+    </section>
+
+    <!-- VIEW: CONFIG -->
+    <section id="view-config" class="view space-y-6">
+      <div class="bg-white p-8 rounded-[2rem] border border-slate-100 card-shadow space-y-6">
+        <h2 class="text-lg font-black uppercase">Configurações Cloud</h2>
+        <div class="space-y-2">
+          <label class="text-[10px] font-black uppercase text-slate-400">URL do Apps Script</label>
+          <input id="config-url" placeholder="https://script.google.com/..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs font-mono outline-none">
+        </div>
+        <button onclick="updateSettings()" class="w-full bg-emerald-600 text-white py-4 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg">Guardar e Ligar</button>
+        <div class="pt-6 border-t border-slate-100">
+           <button onclick="manualSync()" class="w-full bg-slate-100 text-slate-600 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest">Forçar Sincronização</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Mobile Navigation -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around p-3 safe-area-bottom z-50">
+    <button onclick="showView('dashboard')" class="nav-btn p-2 flex flex-col items-center gap-1 active">
+      <i class="fas fa-chart-pie text-lg"></i>
+      <span class="text-[8px] font-black uppercase">Dashboard</span>
+    </button>
+    <button onclick="showView('agenda')" class="nav-btn p-2 flex flex-col items-center gap-1">
+      <i class="fas fa-calendar-alt text-lg"></i>
+      <span class="text-[8px] font-black uppercase">Agenda</span>
+    </button>
+    <button onclick="showView('pessoal')" class="nav-btn p-2 flex flex-col items-center gap-1">
+      <i class="fas fa-user-shield text-lg"></i>
+      <span class="text-[8px] font-black uppercase">Pessoal</span>
+    </button>
+    <button onclick="showView('config')" class="nav-btn p-2 flex flex-col items-center gap-1">
+      <i class="fas fa-cloud text-lg"></i>
+      <span class="text-[8px] font-black uppercase">Cloud</span>
+    </button>
+  </nav>
+
+  <script>
+    // --- ESTADO ---
+    let state = {
+      jobs: [],
+      expenses: [],
+      personal: [],
+      settings: { url: '' }
+    };
+
+    // --- INICIALIZAÇÃO ---
+    window.onload = () => {
+      loadLocal();
+      const today = new Date().toISOString().split('T')[0];
+      document.querySelectorAll('input[type="date"]').forEach(inp => inp.value = today);
+      
+      if (state.settings.url) {
+        document.getElementById('config-url').value = state.settings.url;
+        autoSync();
+      }
+      renderAll();
+    };
+
+    // --- FUNÇÕES DE INTERFACE ---
+    function showView(viewId) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-' + viewId).classList.add('active');
+      
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      // Simples mapeamento para o botão ativo (se existir no nav mobile)
+      const btn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.innerText.toLowerCase().includes(viewId.toLowerCase()));
+      if (btn) btn.classList.add('active');
+    }
+
+    function toggleForm(id) {
+      const el = document.getElementById(id);
+      el.classList.toggle('hidden');
+    }
+
+    // --- PERSISTÊNCIA ---
+    function loadLocal() {
+      const saved = localStorage.getItem('vg_state');
+      if (saved) state = JSON.parse(saved);
+    }
+
+    function saveLocal() {
+      localStorage.setItem('vg_state', JSON.stringify(state));
+      renderAll();
+      syncCloud();
+    }
+
+    // --- OPERAÇÕES ---
+    function saveJob() {
+      const client = document.getElementById('j-client').value;
+      const date = document.getElementById('j-date').value;
+      const value = parseFloat(document.getElementById('j-value').value) || 0;
+      const paid = document.getElementById('j-paid').checked;
+
+      if (!client) return alert('Insira o nome do cliente');
+
+      state.jobs.push({ id: Date.now(), client, date, value, paid });
+      document.getElementById('j-client').value = '';
+      document.getElementById('j-value').value = '';
+      document.getElementById('j-paid').checked = false;
+      toggleForm('job-form');
+      saveLocal();
+    }
+
+    function saveExpense() {
+      const desc = document.getElementById('e-desc').value;
+      const date = document.getElementById('e-date').value;
+      const value = parseFloat(document.getElementById('e-value').value) || 0;
+
+      if (!desc) return alert('Insira a descrição');
+
+      state.expenses.push({ id: Date.now(), desc, date, value });
+      document.getElementById('e-desc').value = '';
+      document.getElementById('e-value').value = '';
+      toggleForm('exp-form');
+      saveLocal();
+    }
+
+    function savePersonal() {
+      const desc = document.getElementById('p-desc').value;
+      const date = document.getElementById('p-date').value;
+      const value = parseFloat(document.getElementById('p-value').value) || 0;
+
+      if (!desc) return alert('Insira a descrição');
+
+      state.personal.push({ id: Date.now(), desc, date, value });
+      document.getElementById('p-desc').value = '';
+      document.getElementById('p-value').value = '';
+      toggleForm('pers-form');
+      saveLocal();
+    }
+
+    function deleteItem(type, id) {
+      if (!confirm('Eliminar registo?')) return;
+      state[type] = state[type].filter(item => item.id !== id);
+      saveLocal();
+    }
+
+    function toggleJobPaid(id) {
+      const job = state.jobs.find(j => j.id === id);
+      if (job) job.paid = !job.paid;
+      saveLocal();
+    }
+
+    // --- RENDERIZAÇÃO ---
+    function renderAll() {
+      renderDashboard();
+      renderList('jobs-list', state.jobs, 'jobs');
+      renderList('expenses-list', state.expenses, 'expenses');
+      renderList('personal-list', state.personal, 'personal');
+    }
+
+    function renderDashboard() {
+      const totalIncome = state.jobs.filter(j => j.paid).reduce((acc, j) => acc + j.value, 0);
+      const totalExpense = state.expenses.reduce((acc, e) => acc + e.value, 0);
+      const debtValue = state.jobs.filter(j => !j.paid).reduce((acc, j) => acc + j.value, 0);
+      const pendingJobs = state.jobs.filter(j => !j.paid).length;
+
+      document.getElementById('dash-total').innerText = (totalIncome - totalExpense).toFixed(2) + '€';
+      document.getElementById('dash-pending').innerText = pendingJobs;
+      document.getElementById('dash-debt').innerText = debtValue.toFixed(2) + '€';
+      document.getElementById('res-income').innerText = totalIncome.toFixed(2) + '€';
+      document.getElementById('res-expense').innerText = totalExpense.toFixed(2) + '€';
+    }
+
+    function renderList(containerId, items, type) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      
+      items.sort((a,b) => b.id - a.id).forEach(item => {
+        const div = document.createElement('div');
+        div.className = "bg-white p-4 rounded-2xl flex justify-between items-center card-shadow border border-slate-50";
+        
+        let subText = item.date;
+        let mainText = item.client || item.desc;
+        let valueColor = type === 'jobs' ? 'text-emerald-600' : 'text-rose-500';
+        if (type === 'personal') valueColor = 'text-indigo-600';
+
+        div.innerHTML = `
+          <div class="flex items-center gap-3">
+             <div class="w-8 h-8 rounded-full flex items-center justify-center bg-slate-50 text-slate-400 text-[10px]">
+               <i class="fas ${type === 'jobs' ? 'fa-leaf' : 'fa-receipt'}"></i>
+             </div>
+             <div>
+               <h4 class="text-xs font-black uppercase text-slate-800">${mainText}</h4>
+               <p class="text-[9px] font-bold text-slate-400 uppercase">${subText} ${type === 'jobs' ? (item.paid ? '• PAGO' : '• PENDENTE') : ''}</p>
+             </div>
+          </div>
+          <div class="flex items-center gap-4">
+            <span class="${valueColor} font-black text-xs">${item.value.toFixed(2)}€</span>
+            <div class="flex gap-2">
+              ${type === 'jobs' ? `<button onclick="toggleJobPaid(${item.id})" class="text-slate-300 hover:text-emerald-500"><i class="fas fa-check-circle"></i></button>` : ''}
+              <button onclick="deleteItem('${type}', ${item.id})" class="text-slate-200 hover:text-rose-500"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      if (items.length === 0) {
+        container.innerHTML = `<div class="py-10 text-center text-slate-300 text-[10px] uppercase font-black">Sem registos</div>`;
+      }
+    }
+
+    // --- CLOUD SYNC ---
+    function updateSettings() {
+      const url = document.getElementById('config-url').value;
+      state.settings.url = url;
+      localStorage.setItem('vg_state', JSON.stringify(state));
+      alert('Configurações guardadas!');
+      autoSync();
+    }
+
+    async function syncCloud() {
+      if (!state.settings.url) return;
+      const indicator = document.getElementById('sync-indicator');
+      indicator.innerText = "A Enviar...";
+      
+      try {
+        await fetch(state.settings.url, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify(state)
+        });
+        indicator.innerText = "Cloud OK";
+        indicator.className = "px-3 py-1 bg-emerald-50 rounded-full border border-emerald-100 text-[8px] font-black uppercase tracking-widest text-emerald-600";
+      } catch (e) {
+        indicator.innerText = "Erro Cloud";
+        indicator.className = "px-3 py-1 bg-rose-50 rounded-full border border-rose-100 text-[8px] font-black uppercase tracking-widest text-rose-400";
+      }
+    }
+
+    async function autoSync() {
+      if (!state.settings.url) return;
+      try {
+        const response = await fetch(state.settings.url);
+        const data = await response.json();
+        if (data && data.jobs) {
+          state = data;
+          localStorage.setItem('vg_state', JSON.stringify(state));
+          renderAll();
         }
+      } catch (e) {
+        console.log('Sync offline');
+      }
+    }
 
-        function salvarServico() {
-            const cliente = document.getElementById('cliente').value;
-            if(!cliente) return;
-            const novo = { cliente, data: new Date().toLocaleDateString() };
-            db.unshift(novo);
-            localStorage.setItem('verdegest_db', JSON.stringify(db));
-            document.getElementById('cliente').value = "";
-            render();
-            if(scriptURL) enviarParaNuvem(novo);
-        }
-
-        async function enviarParaNuvem(dados) {
-            try {
-                await fetch(scriptURL, { method: 'POST', body: JSON.stringify(dados) });
-            } catch(e) { console.log("Erro ao sincronizar"); }
-        }
-
-        function abrirConfig() { 
-            document.getElementById('modalConfig').classList.remove('hidden'); 
-            document.getElementById('urlScript').value = scriptURL;
-        }
-        function fecharConfig() { document.getElementById('modalConfig').classList.add('hidden'); }
-        function guardarURL() {
-            scriptURL = document.getElementById('urlScript').value;
-            localStorage.setItem('verdegest_url', scriptURL);
-            fecharConfig();
-            render();
-        }
-
-        render();
-    </script>
+    function manualSync() {
+      if (!state.settings.url) return alert('Configure o URL primeiro.');
+      autoSync();
+      syncCloud();
+    }
+  </script>
 </body>
 </html>
